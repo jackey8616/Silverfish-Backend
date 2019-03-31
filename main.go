@@ -23,7 +23,7 @@ func main() {
 		AllowCredentials: allowCredentials,
 		Debug:            debug,
 	}).Handler(mux)
-	log.Fatal(http.ListenAndServe(":8081", handler))
+	log.Fatal(http.ListenAndServe(":8080", handler))
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
