@@ -10,4 +10,4 @@ COPY . /app
 
 RUN go mod download
 
-ENTRYPOINT ["go", "run", "main.go"]
+ENTRYPOINT ["env", "mode=prod", "go", "run", "main.go"]
