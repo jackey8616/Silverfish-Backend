@@ -86,6 +86,7 @@ func (sf *Silverfish) FetchChapter(w http.ResponseWriter, r *http.Request) {
 
 	html, _ := doc.Html()
 	charset, _ := doc.Find("meta[content*='charset']").Attr("content")
+	charset = charset[strings.LastIndex(charset, "=")+1:]
 	enc := mahonia.NewDecoder(charset)
 	rawHTML := enc.ConvertString(html)
 
