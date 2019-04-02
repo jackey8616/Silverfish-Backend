@@ -89,6 +89,7 @@ func (sf *Silverfish) FetchChapter(w http.ResponseWriter, r *http.Request) {
 	charset = charset[strings.LastIndex(charset, "=")+1:]
 	enc := mahonia.NewDecoder(charset)
 	rawHTML := enc.ConvertString(html)
+	rawHTML = strings.Replace(rawHTML, "聽聽聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
 
 	w.Header().Set("Content-Type", "application/json")
 	js, _ := json.Marshal(map[string]string{"Rtn": rawHTML})
