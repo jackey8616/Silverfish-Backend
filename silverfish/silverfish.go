@@ -34,20 +34,29 @@ func (sf *Silverfish) FetchNovel(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{}
 	decoder.Decode(&data)
 
-	targetURL := data["novel_url"]
-	result, err := sf.mgoInf.FindOne(bson.M{"url": targetURL}, &entity.Novel{})
-	record := result.(*entity.Novel)
+	record := (*entity.Novel)(nil)
+	if novelID, ok := data["novel_id"]; ok {
+		result, err := sf.mgoInf.FindOne(bson.M{"novelID": novelID}, &entity.Novel{})
+		if err != nil {
+			log.Fatal(fmt.Sprintf("No such NovelID: %s", novelID))
+		}
+		record = result.(*entity.Novel)
+	} else {
+		targetURL := data["novel_url"]
+		result, err := sf.mgoInf.FindOne(bson.M{"url": targetURL}, &entity.Novel{})
+		record = result.(*entity.Novel)
 
-	// Err or need to recrawl
-	if err != nil || time.Now().Sub(record.LastCrawlTime) > 24*time.Hour {
-		log.Println("Missing or expired record, recrawl.")
-		for _, each := range sf.fetchers {
-			if each.Match(&targetURL) {
-				record = each.FetchNovelInfo(&targetURL)
-				sf.mgoInf.Upsert(bson.M{"novelID": record.NovelID}, record)
-				break
+		// Err or need to recrawl
+		if err != nil || time.Now().Sub(record.LastCrawlTime) > 24*time.Hour {
+			log.Println("Missing or expired record, recrawl.")
+			for _, each := range sf.fetchers {
+				if each.Match(&targetURL) {
+					record = each.FetchNovelInfo(&targetURL)
+					sf.mgoInf.Upsert(bson.M{"novelID": record.NovelID}, record)
+					break
+				}
+				log.Fatal(fmt.Sprintf("No suit crawler for %s", targetURL))
 			}
-			log.Fatal(fmt.Sprintf("No suit crawler for %s", targetURL))
 		}
 	}
 
