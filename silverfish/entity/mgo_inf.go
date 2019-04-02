@@ -1,4 +1,4 @@
-package silverfish
+package entity
 
 import "gopkg.in/mgo.v2"
 

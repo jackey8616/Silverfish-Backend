@@ -1,4 +1,4 @@
-package silverfish
+package entity
 
 import "time"
 
@@ -10,8 +10,11 @@ type Chapter struct {
 
 // Novel export
 type Novel struct {
-	Title         string    `json:"title" bson:"title"`
+	NovelID       string    `json:"novelID" bson:"novelID"`
 	DNS           string    `json:"dns" bson:"dns"`
+	Title         string    `json:"title" bson:"title"`
+	Author        string    `json:"author" bson:"author"`
+	Description   string    `json:"description" bson:"description"`
 	URL           string    `json:"url" bson:"url"`
 	CoverURL      string    `json:"coverUrl" bson:"coverUrl"`
 	Chapters      []Chapter `json:"chapters" bson:"chapters"`

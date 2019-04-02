@@ -7,7 +7,8 @@ import (
 	"os"
 
 	"github.com/jackey8616/Silverfish-backend/silverfish"
-	cors "github.com/rs/cors"
+	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
+	"github.com/rs/cors"
 	"gopkg.in/mgo.v2"
 )
 
@@ -29,7 +30,7 @@ func main() {
 	debug, dbHost, allowCredentials, allowOrigins := modeInit()
 	log.Printf("Debug: %t, DbHost: %s", debug, dbHost)
 	session := dbInit(dbHost)
-	mgoInf := silverfish.NewMongoInf(session, session.DB("silverfish").C("novel"))
+	mgoInf := entity.NewMongoInf(session, session.DB("silverfish").C("novel"))
 	silverfish := silverfish.New(mgoInf)
 
 	mux := http.NewServeMux()
