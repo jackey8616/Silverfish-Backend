@@ -9,7 +9,9 @@ services:
       - "27017:27017"
 
   backend:
-    build: .
+    build:
+      context: ../
+      dockerfile: Dockerfile
     ports:
       - "0.0.0.0:8080:8080"
     restart: unless-stopped

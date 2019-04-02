@@ -2,7 +2,6 @@ package silverfish
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -25,13 +24,13 @@ func New(mgoInf *MongoInf) *Silverfish {
 	return sf
 }
 
-// Proxy export
-func (sf *Silverfish) Proxy(w http.ResponseWriter, r *http.Request) {
+// FetchNovel export
+func (sf *Silverfish) FetchNovel(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	data := map[string]string{}
 	decoder.Decode(&data)
 
-	targetURL := data["proxy_url"]
+	targetURL := data["novel_url"]
 	result, err := sf.mgoInf.FindOne(bson.M{"url": targetURL}, &Novel{})
 	record, _ := result.(*Novel)
 
@@ -39,7 +38,7 @@ func (sf *Silverfish) Proxy(w http.ResponseWriter, r *http.Request) {
 		log.Println("Missing or expired record, recrawl.")
 		doc, er := goquery.NewDocument(targetURL)
 		if er != nil {
-			fmt.Println(er)
+			log.Fatal(er)
 		}
 
 		charset, _ := doc.Find("meta[content*='charset']").Attr("content")
@@ -70,5 +69,27 @@ func (sf *Silverfish) Proxy(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	js, _ := json.Marshal(map[string]Novel{"Rtn": *record})
+	w.Write(js)
+}
+
+// FetchChapter export
+func (sf *Silverfish) FetchChapter(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	data := map[string]string{}
+	decoder.Decode(&data)
+
+	targetURL := data["chapter_url"]
+	doc, err := goquery.NewDocument(targetURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	html, _ := doc.Html()
+	charset, _ := doc.Find("meta[content*='charset']").Attr("content")
+	enc := mahonia.NewDecoder(charset)
+	rawHTML := enc.ConvertString(html)
+
+	w.Header().Set("Content-Type", "application/json")
+	js, _ := json.Marshal(map[string]string{"Rtn": rawHTML})
 	w.Write(js)
 }

@@ -34,7 +34,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", helloWorld)
-	mux.HandleFunc("/proxy", silverfish.Proxy)
+	mux.HandleFunc("/fetch_novel", silverfish.FetchNovel)
+	mux.HandleFunc("/fetch_chapter", silverfish.FetchChapter)
 
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   allowOrigins,
