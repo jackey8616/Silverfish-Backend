@@ -5,15 +5,13 @@ services:
     image: mongo
     volumes:
       - "../mongo-data:/data/db"
-    ports:
-      - "27017:27017"
 
   backend:
     build:
       context: ../
       dockerfile: Dockerfile
     ports:
-      - "0.0.0.0:8080:8080"
+      - "2087:8080"
     restart: unless-stopped
     links:
       - mongo
