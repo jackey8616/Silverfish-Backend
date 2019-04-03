@@ -16,16 +16,80 @@ import (
 type Silverfish struct {
 	mgoInf   *entity.MongoInf
 	fetchers []entity.NovelFetcher
+	urls     []string
 }
 
 // New export
-func New(mgoInf *entity.MongoInf) *Silverfish {
+func New(mgoInf *entity.MongoInf, urls []string) *Silverfish {
 	sf := new(Silverfish)
 	sf.mgoInf = mgoInf
+	sf.urls = urls
 	sf.fetchers = []entity.NovelFetcher{
 		usecase.NewFetcher77xsw(),
 	}
 	return sf
+}
+
+// Novel export
+func (sf *Silverfish) Novel(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		novelID := r.URL.Query().Get("novel_id")
+		if novelID == "" {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			response := sf.getNovel(&novelID)
+			js, _ := json.Marshal(response)
+			w.Write(js)
+		}
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// Novels export
+func (sf *Silverfish) Novels(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		response := sf.getNovels()
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// getNovels
+func (sf *Silverfish) getNovels() *entity.APIResponse {
+	result, err := sf.mgoInf.FindSelectAll(nil, bson.M{
+		"novelID": 1, "coverUrl": 1, "title": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
+	if err != nil {
+		return &entity.APIResponse{
+			Fail: true,
+			Data: map[string]string{"reason": err.Error()},
+		}
+	}
+	return &entity.APIResponse{
+		Success: true,
+		Data:    result.(*[]entity.NovelInfo),
+	}
+}
+
+// getNovel
+func (sf *Silverfish) getNovel(novelID *string) *entity.APIResponse {
+	result, err := sf.mgoInf.FindOne(bson.M{"novelID": *novelID}, &entity.Novel{})
+	if err != nil {
+		return &entity.APIResponse{
+			Fail: true,
+			Data: map[string]string{"reason": err.Error()},
+		}
+	}
+	return &entity.APIResponse{
+		Success: true,
+		Data:    result.(*entity.Novel),
+	}
 }
 
 // FetchNovel export

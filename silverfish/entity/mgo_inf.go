@@ -62,3 +62,11 @@ func (mi *MongoInf) FindAll(key, res interface{}) (interface{}, error) {
 	err := value.All(res)
 	return res, err
 }
+
+// FindSelectAll export
+func (mi *MongoInf) FindSelectAll(key, sel, res interface{}) (interface{}, error) {
+	query := mi.Find(key)
+	value, _ := query.(*mgo.Query)
+	err := value.Select(sel).All(res)
+	return res, err
+}

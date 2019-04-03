@@ -31,10 +31,17 @@ func main() {
 	log.Printf("Debug: %t, DbHost: %s", debug, dbHost)
 	session := dbInit(dbHost)
 	mgoInf := entity.NewMongoInf(session, session.DB("silverfish").C("novel"))
-	silverfish := silverfish.New(mgoInf)
+	silverfish := silverfish.New(mgoInf, []string{
+		"http://www.77xsw.la/book/389/",
+		"http://www.77xsw.la/book/11072/",
+		"http://www.77xsw.la/book/11198/",
+		"http://www.77xsw.la/book/13192/",
+	})
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", helloWorld)
+	mux.HandleFunc("/api/v1/novel", silverfish.Novel)
+	mux.HandleFunc("/api/v1/novels", silverfish.Novels)
 	mux.HandleFunc("/fetch_novel", silverfish.FetchNovel)
 	mux.HandleFunc("/fetch_chapter", silverfish.FetchChapter)
 
