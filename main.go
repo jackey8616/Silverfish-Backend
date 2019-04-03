@@ -12,13 +12,18 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func modeInit() (bool, string, bool, []string) {
+func modeInit() (string, string, bool, string, bool, []string) {
 	mode := os.Getenv("mode")
+	port := os.Getenv("port")
+	if port == "" {
+		port = "8080"
+	}
+
 	if mode == "prod" {
-		return false, "mongo:27017", false,
+		return mode, port, false, "mongo:27017", false,
 			[]string{"https://jackey8616.github.io", "http://jackey8616.github.io", "https://*.clo5de.info", "http://*.clo5de.info"}
 	}
-	return true, "127.0.0.1:27017", true, []string{"*"}
+	return mode, port, true, "127.0.0.1:27017", true, []string{"*"}
 }
 
 func dbInit(mongoHost string) *mgo.Session {
@@ -27,7 +32,7 @@ func dbInit(mongoHost string) *mgo.Session {
 }
 
 func main() {
-	debug, dbHost, allowCredentials, allowOrigins := modeInit()
+	mode, port, debug, dbHost, allowCredentials, allowOrigins := modeInit()
 	log.Printf("Debug: %t, DbHost: %s", debug, dbHost)
 	session := dbInit(dbHost)
 	mgoInf := entity.NewMongoInf(session, session.DB("silverfish").C("novel"))
@@ -52,8 +57,12 @@ func main() {
 	}).Handler(mux)
 
 	log.Printf("Everything Inited! HooRay!~ Silverfish!")
-	log.Printf("Connect to http://localhost:%d/ backend", 8080)
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	if mode == "prod" {
+		log.Printf("Connect to https://localhost:%s/ backend", port)
+		log.Fatal(http.ListenAndServeTLS(":"+port, "server.pem", "server.key", handler))
+	}
+	log.Printf("Connect to http://localhost:%s/ backend", port)
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
