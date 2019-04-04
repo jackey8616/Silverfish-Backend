@@ -8,6 +8,7 @@ type NovelFetcher interface {
 	FetchDoc(url *string) *goquery.Document
 
 	IsSplit(doc *goquery.Document) bool
+	Filter(raw *string) *string
 	FetchNovelInfo(url *string) *Novel
 	FetchChapter(id *string) *string
 	FetcherNewChapter(novelID *Novel, index int) *string

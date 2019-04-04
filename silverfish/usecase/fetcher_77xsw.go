@@ -34,6 +34,20 @@ func (f7 *Fetcher77xsw) IsSplit(doc *goquery.Document) bool {
 	return el == "(1/2)"
 }
 
+// Filter export
+func (f7 *Fetcher77xsw) Filter(raw *string) *string {
+	str := *raw
+	str = strings.Replace(str, "\n                一秒记住【千千小说网 www.77xsw.la】，更新快，无弹窗，免费读！\n                ", "", 1)
+	str = strings.Replace(str, "\n                -->>本章未完，点击下一页继续阅读\n            \n                一秒记住【千千小说网 www.77xsw.la】，更新快，无弹窗，免费读！\n                ", "", 1)
+	str = strings.Replace(str, "聽聽聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
+	str = strings.Replace(str, "&nbsp;聽聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
+	str = strings.Replace(str, "聽&nbsp;聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
+	str = strings.Replace(str, "聽聽&nbsp;聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
+	str = strings.Replace(str, "聽聽聽&nbsp;", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
+	str = strings.Replace(str, "\n", "<br/>", -1)
+	return &str
+}
+
 // FetchNovelInfo export
 func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 	doc := f7.FetchDoc(url)
@@ -102,5 +116,5 @@ func (f7 *Fetcher77xsw) FetcherNewChapter(novel *entity.Novel, index int) *strin
 		output += f7.decoder.ConvertString(novelContent)
 	}
 
-	return &output
+	return f7.Filter(&output)
 }

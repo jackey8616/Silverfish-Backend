@@ -107,7 +107,7 @@ func (sf *Silverfish) getChapterNew(novelID, chapterIndex *string) *entity.APIRe
 			Fail: true,
 			Data: map[string]string{"reason": "Wrong Index"},
 		}
-	} else if val, ok := sf.fetchers[*novelID]; ok {
+	} else if val, ok := sf.fetchers[(*record).DNS]; ok {
 		return &entity.APIResponse{
 			Success: true,
 			Data:    val.FetcherNewChapter(record, index),
