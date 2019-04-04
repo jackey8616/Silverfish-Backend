@@ -15,13 +15,15 @@ import (
 
 // Fetcher export
 type Fetcher struct {
+	tls    bool
 	dns    *string
 	dnsReg *regexp.Regexp
 }
 
 // NewFetcher export
-func (f *Fetcher) NewFetcher(dns *string) {
+func (f *Fetcher) NewFetcher(tls bool, dns *string) {
 	f.dns = dns
+	f.tls = tls
 	f.dnsReg = regexp.MustCompile("https?://.*?/")
 }
 

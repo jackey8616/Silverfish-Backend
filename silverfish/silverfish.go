@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
@@ -14,51 +15,22 @@ import (
 
 // Silverfish export
 type Silverfish struct {
+	Router   *Router
 	mgoInf   *entity.MongoInf
-	fetchers []entity.NovelFetcher
+	fetchers map[string]entity.NovelFetcher
 	urls     []string
 }
 
 // New export
 func New(mgoInf *entity.MongoInf, urls []string) *Silverfish {
 	sf := new(Silverfish)
+	sf.Router = NewRouter(sf)
 	sf.mgoInf = mgoInf
 	sf.urls = urls
-	sf.fetchers = []entity.NovelFetcher{
-		usecase.NewFetcher77xsw(),
+	sf.fetchers = map[string]entity.NovelFetcher{
+		"www.77xsw.la": usecase.NewFetcher77xsw("www.77xsw.la"),
 	}
 	return sf
-}
-
-// Novel export
-func (sf *Silverfish) Novel(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		novelID := r.URL.Query().Get("novel_id")
-		if novelID == "" {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.Header().Set("Content-Type", "application/json")
-			response := sf.getNovel(&novelID)
-			js, _ := json.Marshal(response)
-			w.Write(js)
-		}
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
-
-// Novels export
-func (sf *Silverfish) Novels(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		w.Header().Set("Content-Type", "application/json")
-		response := sf.getNovels()
-		js, _ := json.Marshal(response)
-		w.Write(js)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
 }
 
 // getNovels
@@ -89,6 +61,61 @@ func (sf *Silverfish) getNovel(novelID *string) *entity.APIResponse {
 	return &entity.APIResponse{
 		Success: true,
 		Data:    result.(*entity.Novel),
+	}
+}
+
+// getChapter
+func (sf *Silverfish) getChapter(novelID *string) *entity.APIResponse {
+	query, err := sf.mgoInf.FindOne(bson.M{"novelID": novelID}, &entity.Novel{})
+	if err != nil {
+		return &entity.APIResponse{
+			Fail: true,
+			Data: map[string]string{"reason": err.Error()},
+		}
+	}
+	record := query.(*entity.Novel)
+	if val, ok := sf.fetchers[record.DNS]; ok {
+		return &entity.APIResponse{
+			Success: true,
+			Data:    val.FetchChapter(&record.NovelID),
+		}
+	}
+	return &entity.APIResponse{
+		Fail: true,
+		Data: map[string]string{"reason": "No such fetcher."},
+	}
+}
+
+func (sf *Silverfish) getChapterNew(novelID, chapterIndex *string) *entity.APIResponse {
+	index, err := strconv.Atoi(*chapterIndex)
+	if err != nil {
+		return &entity.APIResponse{
+			Fail: true,
+			Data: map[string]string{"reason": "Invalid chapter index"},
+		}
+	}
+	query, err := sf.mgoInf.FindOne(bson.M{"novelID": novelID}, &entity.Novel{})
+	if err != nil {
+		return &entity.APIResponse{
+			Fail: true,
+			Data: map[string]string{"reason": err.Error()},
+		}
+	}
+	record := query.(*entity.Novel)
+	if len((*record).Chapters) < index {
+		return &entity.APIResponse{
+			Fail: true,
+			Data: map[string]string{"reason": "Wrong Index"},
+		}
+	} else if val, ok := sf.fetchers[*novelID]; ok {
+		return &entity.APIResponse{
+			Success: true,
+			Data:    val.FetcherNewChapter(record, index),
+		}
+	}
+	return &entity.APIResponse{
+		Success: true,
+		Data:    map[string]string{"reason": "No such fetcher'"},
 	}
 }
 

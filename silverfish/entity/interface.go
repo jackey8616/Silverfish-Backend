@@ -5,7 +5,10 @@ import "github.com/PuerkitoBio/goquery"
 // NovelFetcher export
 type NovelFetcher interface {
 	Match(url *string) bool
+	FetchDoc(url *string) *goquery.Document
+
+	IsSplit(doc *goquery.Document) bool
 	FetchNovelInfo(url *string) *Novel
 	FetchChapter(id *string) *string
-	FetchDoc(url *string) *goquery.Document
+	FetcherNewChapter(novelID *Novel, index int) *string
 }

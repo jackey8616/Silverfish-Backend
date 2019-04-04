@@ -19,14 +19,19 @@ type Fetcher77xsw struct {
 }
 
 // NewFetcher77xsw export
-func NewFetcher77xsw() *Fetcher77xsw {
-	dns := "www.77xsw.la"
+func NewFetcher77xsw(dns string) *Fetcher77xsw {
 	f7 := new(Fetcher77xsw)
-	f7.NewFetcher(&dns)
+	f7.NewFetcher(false, &dns)
 
 	f7.charset = "gbk"
 	f7.decoder = mahonia.NewDecoder(f7.charset)
 	return f7
+}
+
+// IsSplit export
+func (f7 *Fetcher77xsw) IsSplit(doc *goquery.Document) bool {
+	el := doc.Find("h1.readTitle > small").Text()
+	return el == "(1/2)"
 }
 
 // FetchNovelInfo export
@@ -79,4 +84,23 @@ func (f7 *Fetcher77xsw) FetchChapter(url *string) *string {
 	rawHTML = strings.Replace(rawHTML, "聽聽聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
 
 	return &rawHTML
+}
+
+// FetcherNewChapter export
+func (f7 *Fetcher77xsw) FetcherNewChapter(novel *entity.Novel, index int) *string {
+	url := novel.URL + novel.Chapters[index].URL
+	output := ""
+	doc := f7.FetchDoc(&url)
+
+	novelContent := doc.Find("div#htmlContent").Text()
+	output += f7.decoder.ConvertString(novelContent)
+
+	if f7.IsSplit(doc) {
+		url = strings.Replace(url, ".html", "_2.html", 1)
+		doc = f7.FetchDoc(&url)
+		novelContent = doc.Find("div#htmlContent").Text()
+		output += f7.decoder.ConvertString(novelContent)
+	}
+
+	return &output
 }
