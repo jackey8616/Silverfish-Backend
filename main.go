@@ -48,7 +48,6 @@ func main() {
 	mux.HandleFunc("/api/v1/novel", silverfish.Router.V1Novel)
 	mux.HandleFunc("/api/v1/novels", silverfish.Router.V1Novels)
 	mux.HandleFunc("/api/v1/chapter", silverfish.Router.V1Chapter)
-	mux.HandleFunc("/api/v1/chapter_new", silverfish.Router.V1ChapterNew)
 	mux.HandleFunc("/fetch_novel", silverfish.FetchNovel)
 	mux.HandleFunc("/fetch_chapter", silverfish.FetchChapter)
 

@@ -53,30 +53,12 @@ func (rr *Router) V1Chapter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		novelID := r.URL.Query().Get("novel_id")
-		if novelID == "" {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getChapter(&novelID)
-			js, _ := json.Marshal(response)
-			w.Write(js)
-		}
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
-
-// V1ChapterNew export
-func (rr *Router) V1ChapterNew(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		novelID := r.URL.Query().Get("novel_id")
 		chapterIndex := r.URL.Query().Get("chapter_index")
 		if novelID == "" || chapterIndex == "" {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getChapterNew(&novelID, &chapterIndex)
+			response := rr.sf.getChapter(&novelID, &chapterIndex)
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		}

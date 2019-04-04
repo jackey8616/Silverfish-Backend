@@ -65,28 +65,7 @@ func (sf *Silverfish) getNovel(novelID *string) *entity.APIResponse {
 }
 
 // getChapter
-func (sf *Silverfish) getChapter(novelID *string) *entity.APIResponse {
-	query, err := sf.mgoInf.FindOne(bson.M{"novelID": novelID}, &entity.Novel{})
-	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
-	}
-	record := query.(*entity.Novel)
-	if val, ok := sf.fetchers[record.DNS]; ok {
-		return &entity.APIResponse{
-			Success: true,
-			Data:    val.FetchChapter(&record.NovelID),
-		}
-	}
-	return &entity.APIResponse{
-		Fail: true,
-		Data: map[string]string{"reason": "No such fetcher."},
-	}
-}
-
-func (sf *Silverfish) getChapterNew(novelID, chapterIndex *string) *entity.APIResponse {
+func (sf *Silverfish) getChapter(novelID, chapterIndex *string) *entity.APIResponse {
 	index, err := strconv.Atoi(*chapterIndex)
 	if err != nil {
 		return &entity.APIResponse{
