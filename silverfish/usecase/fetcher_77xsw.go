@@ -90,18 +90,7 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 }
 
 // FetchChapter export
-func (f7 *Fetcher77xsw) FetchChapter(url *string) *string {
-	doc := f7.FetchDoc(url)
-
-	html, _ := doc.Html()
-	rawHTML := f7.decoder.ConvertString(html)
-	rawHTML = strings.Replace(rawHTML, "聽聽聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
-
-	return &rawHTML
-}
-
-// FetcherNewChapter export
-func (f7 *Fetcher77xsw) FetcherNewChapter(novel *entity.Novel, index int) *string {
+func (f7 *Fetcher77xsw) FetchChapter(novel *entity.Novel, index int) *string {
 	url := novel.URL + novel.Chapters[index].URL
 	output := ""
 	doc := f7.FetchDoc(&url)

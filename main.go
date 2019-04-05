@@ -49,7 +49,6 @@ func main() {
 	mux.HandleFunc("/api/v1/novels", silverfish.Router.V1Novels)
 	mux.HandleFunc("/api/v1/chapter", silverfish.Router.V1Chapter)
 	mux.HandleFunc("/fetch_novel", silverfish.FetchNovel)
-	mux.HandleFunc("/fetch_chapter", silverfish.FetchChapter)
 
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   allowOrigins,

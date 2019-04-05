@@ -89,7 +89,7 @@ func (sf *Silverfish) getChapter(novelID, chapterIndex *string) *entity.APIRespo
 	} else if val, ok := sf.fetchers[(*record).DNS]; ok {
 		return &entity.APIResponse{
 			Success: true,
-			Data:    val.FetcherNewChapter(record, index),
+			Data:    val.FetchChapter(record, index),
 		}
 	}
 	return &entity.APIResponse{
@@ -132,26 +132,5 @@ func (sf *Silverfish) FetchNovel(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	js, _ := json.Marshal(map[string]entity.Novel{"Rtn": *record})
-	w.Write(js)
-}
-
-// FetchChapter export
-func (sf *Silverfish) FetchChapter(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	data := map[string]string{}
-	decoder.Decode(&data)
-
-	targetURL := data["chapter_url"]
-	rawHTML := ""
-	for _, each := range sf.fetchers {
-		if each.Match(&targetURL) {
-			rawHTML = *each.FetchChapter(&targetURL)
-			break
-		}
-		log.Fatal(fmt.Sprintf("No suit crawler for %s", targetURL))
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	js, _ := json.Marshal(map[string]string{"Rtn": rawHTML})
 	w.Write(js)
 }
