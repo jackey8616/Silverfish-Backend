@@ -28,6 +28,12 @@ func NewFetcher77xsw(dns string) *Fetcher77xsw {
 	return f7
 }
 
+// GetChapterURL export
+func (f7 *Fetcher77xsw) GetChapterURL(novel *entity.Novel, index int) *string {
+	url := "http://" + novel.URL + novel.Chapters[index].URL
+	return &url
+}
+
 // IsSplit export
 func (f7 *Fetcher77xsw) IsSplit(doc *goquery.Document) bool {
 	el := doc.Find("h1.readTitle > small").Text()
@@ -37,8 +43,8 @@ func (f7 *Fetcher77xsw) IsSplit(doc *goquery.Document) bool {
 // Filter export
 func (f7 *Fetcher77xsw) Filter(raw *string) *string {
 	str := *raw
-	str = strings.Replace(str, "\n                一秒记住【千千小说网 www.77xsw.la】，更新快，无弹窗，免费读！\n                ", "", 1)
-	str = strings.Replace(str, "\n                -->>本章未完，点击下一页继续阅读\n            \n                一秒记住【千千小说网 www.77xsw.la】，更新快，无弹窗，免费读！\n                ", "", 1)
+	str = strings.Replace(str, "一秒记住【千千小说网 www.77xsw.la】，更新快，无弹窗，免费读！", "", -1)
+	str = strings.Replace(str, "本章未完，点击下一页继续阅读", "", -1)
 	str = strings.Replace(str, "聽聽聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
 	str = strings.Replace(str, "&nbsp;聽聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
 	str = strings.Replace(str, "聽&nbsp;聽聽", "&nbsp;&nbsp;&nbsp;&nbsp;", -1)
@@ -91,16 +97,16 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 
 // FetchChapter export
 func (f7 *Fetcher77xsw) FetchChapter(novel *entity.Novel, index int) *string {
-	url := novel.URL + novel.Chapters[index].URL
+	url := f7.GetChapterURL(novel, index)
 	output := ""
-	doc := f7.FetchDoc(&url)
+	doc := f7.FetchDoc(url)
 
 	novelContent := doc.Find("div#htmlContent").Text()
 	output += f7.decoder.ConvertString(novelContent)
 
 	if f7.IsSplit(doc) {
-		url = strings.Replace(url, ".html", "_2.html", 1)
-		doc = f7.FetchDoc(&url)
+		url2 := strings.Replace(*url, ".html", "_2.html", 1)
+		doc = f7.FetchDoc(&url2)
 		novelContent = doc.Find("div#htmlContent").Text()
 		output += f7.decoder.ConvertString(novelContent)
 	}

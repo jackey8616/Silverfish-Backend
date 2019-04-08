@@ -1,12 +1,7 @@
 package silverfish
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
 	"github.com/jackey8616/Silverfish-backend/silverfish/usecase"
@@ -29,6 +24,7 @@ func New(mgoInf *entity.MongoInf, urls []string) *Silverfish {
 	sf.urls = urls
 	sf.fetchers = map[string]entity.NovelFetcher{
 		"www.77xsw.la": usecase.NewFetcher77xsw("www.77xsw.la"),
+		"tw.hjwzw.com": usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 	}
 	return sf
 }
@@ -49,8 +45,8 @@ func (sf *Silverfish) getNovels() *entity.APIResponse {
 	}
 }
 
-// getNovel
-func (sf *Silverfish) getNovel(novelID *string) *entity.APIResponse {
+// getNovelByID
+func (sf *Silverfish) getNovelByID(novelID *string) *entity.APIResponse {
 	result, err := sf.mgoInf.FindOne(bson.M{"novelID": *novelID}, &entity.Novel{})
 	if err != nil {
 		return &entity.APIResponse{
@@ -58,6 +54,32 @@ func (sf *Silverfish) getNovel(novelID *string) *entity.APIResponse {
 			Data: map[string]string{"reason": err.Error()},
 		}
 	}
+	return &entity.APIResponse{
+		Success: true,
+		Data:    result.(*entity.Novel),
+	}
+}
+
+// getNovelByURL
+func (sf *Silverfish) getNovelByURL(novelURL *string) *entity.APIResponse {
+	result, err := sf.mgoInf.FindOne(bson.M{"novelURL": *novelURL}, &entity.Novel{})
+	if err != nil {
+		for _, v := range sf.fetchers {
+			if v.Match(novelURL) {
+				record := v.FetchNovelInfo(novelURL)
+				sf.mgoInf.Upsert(bson.M{"novelID": record.NovelID}, record)
+				return &entity.APIResponse{
+					Success: true,
+					Data:    record,
+				}
+			}
+		}
+		return &entity.APIResponse{
+			Fail: true,
+			Data: map[string]string{"reason": "No suit fetcher"},
+		}
+	}
+
 	return &entity.APIResponse{
 		Success: true,
 		Data:    result.(*entity.Novel),
@@ -96,41 +118,4 @@ func (sf *Silverfish) getChapter(novelID, chapterIndex *string) *entity.APIRespo
 		Success: true,
 		Data:    map[string]string{"reason": "No such fetcher'"},
 	}
-}
-
-// FetchNovel export
-func (sf *Silverfish) FetchNovel(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	data := map[string]string{}
-	decoder.Decode(&data)
-
-	record := (*entity.Novel)(nil)
-	if novelID, ok := data["novel_id"]; ok {
-		result, err := sf.mgoInf.FindOne(bson.M{"novelID": novelID}, &entity.Novel{})
-		if err != nil {
-			log.Fatal(fmt.Sprintf("No such NovelID: %s", novelID))
-		}
-		record = result.(*entity.Novel)
-	} else {
-		targetURL := data["novel_url"]
-		result, err := sf.mgoInf.FindOne(bson.M{"url": targetURL}, &entity.Novel{})
-		record = result.(*entity.Novel)
-
-		// Err or need to recrawl
-		if err != nil || time.Now().Sub(record.LastCrawlTime) > 24*time.Hour {
-			log.Println("Missing or expired record, recrawl.")
-			for _, each := range sf.fetchers {
-				if each.Match(&targetURL) {
-					record = each.FetchNovelInfo(&targetURL)
-					sf.mgoInf.Upsert(bson.M{"novelID": record.NovelID}, record)
-					break
-				}
-				log.Fatal(fmt.Sprintf("No suit crawler for %s", targetURL))
-			}
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	js, _ := json.Marshal(map[string]entity.Novel{"Rtn": *record})
-	w.Write(js)
 }

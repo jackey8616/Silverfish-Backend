@@ -22,13 +22,23 @@ func (rr *Router) V1Novel(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		novelID := r.URL.Query().Get("novel_id")
-		if novelID == "" {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
+		if novelID != "" {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getNovel(&novelID)
+			response := rr.sf.getNovelByID(&novelID)
 			js, _ := json.Marshal(response)
 			w.Write(js)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	case http.MethodPost:
+		novelURL := r.FormValue("novel_url")
+		if novelURL != "" {
+			w.Header().Set("Content-Type", "application/json")
+			response := rr.sf.getNovelByURL(&novelURL)
+			js, _ := json.Marshal(response)
+			w.Write(js)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
 		}
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
