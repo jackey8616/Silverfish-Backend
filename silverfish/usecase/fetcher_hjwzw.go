@@ -47,12 +47,13 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 	doc := fh.FetchDoc(url)
 
 	id := fh.GenerateID(url)
-	title := doc.Find("#form1 > div:nth-child(4) > table:nth-child(10) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > h1:nth-child(1)").Text()
-	author := doc.Find("#form1 > div:nth-child(4) > table:nth-child(10) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(1) > a:nth-child(1)").Text()
-	description, ok2 := doc.Find("meta[name='Description']").Attr("content")
+	infoAnchor := doc.Find("#form1 > div > table > tbody > tr > td > h1").Parent().Parent().Parent()
+	title := infoAnchor.Find("tr > td > h1").Text()
+	author := infoAnchor.Find("tr:nth-child(2) > td:nth-child(1) > a:nth-child(1)").Text()
+	description, ok := doc.Find("meta[name='Description']").Attr("content")
 	coverURL := strings.Replace(*url, "Book/Chapter", "images/id", 1) + ".jpg"
-	if title == "" || author == "" || !ok2 {
-		log.Printf("Something missing, title: %s, author: %s, description: %s", title, author, description)
+	if title == "" || author == "" || !ok || coverURL == "" {
+		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 		return nil
 	}
 
@@ -66,7 +67,7 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 				URL:   chapterURL,
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, url)
+			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
 		}
 	})
 

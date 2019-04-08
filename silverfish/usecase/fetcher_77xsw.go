@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -61,10 +60,10 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 	id := f7.GenerateID(url)
 	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
 	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
-	decription, ok2 := doc.Find("meta[property='og:description']").Attr("content")
+	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
 	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
 	if !ok0 || !ok1 || !ok2 || !ok3 {
-		log.Fatal(fmt.Sprintf("Something missing, title: %t, author: %t, description: %t, coverURL: %t", ok0, ok1, ok2, ok3))
+		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 		return nil
 	}
 
@@ -78,7 +77,7 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 				URL:   chapterURL,
 			})
 		} else {
-			log.Fatal(fmt.Sprintf("Chapter missing something, title: %t, url: %t", ok0, ok1))
+			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
 		}
 	})
 
@@ -87,7 +86,7 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 		DNS:           *f7.dns,
 		Title:         f7.decoder.ConvertString(title),
 		Author:        f7.decoder.ConvertString(author),
-		Description:   f7.decoder.ConvertString(decription),
+		Description:   f7.decoder.ConvertString(description),
 		URL:           *url,
 		Chapters:      chapters,
 		CoverURL:      coverURL,
