@@ -35,10 +35,7 @@ func (fh *FetcherHjwzw) IsSplit(doc *goquery.Document) bool {
 // Filter export
 func (fh *FetcherHjwzw) Filter(raw *string) *string {
 	str := *raw
-	str = strings.Replace(str, "請記住本站域名: 黃金屋", "", -1)
-	str = strings.Replace(str, "哥們，別忘了收藏！", "", -1)
-	str = strings.Replace(str, "\n", "", 3)
-	str = strings.Replace(str, "\n", "<br/>", -1)
+	str = str[strings.Index(str, "</p>")+4:]
 	return &str
 }
 
@@ -91,7 +88,7 @@ func (fh *FetcherHjwzw) FetchChapter(novel *entity.Novel, index int) *string {
 
 	anchor := doc.Find("#form1 > table > tbody > tr > td > div > p > a")
 	novelDiv := anchor.Parent().Parent()
-	novelContent := novelDiv.Text()
+	novelContent, _ := novelDiv.Html()
 
 	return fh.Filter(&novelContent)
 }
