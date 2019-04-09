@@ -29,7 +29,7 @@ func NewFetcher77xsw(dns string) *Fetcher77xsw {
 
 // GetChapterURL export
 func (f7 *Fetcher77xsw) GetChapterURL(novel *entity.Novel, index int) *string {
-	url := "http://" + novel.URL + novel.Chapters[index].URL
+	url := novel.URL + novel.Chapters[index].URL
 	return &url
 }
 
