@@ -85,6 +85,29 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 	}
 }
 
+// UpdateNovelInfo export
+func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
+	doc := fh.FetchDoc(&novel.URL)
+
+	chapters := []entity.Chapter{}
+	doc.Find("div#tbchapterlist > table > tbody > tr > td > a").Each(func(i int, s *goquery.Selection) {
+		chapterTitle := s.Text()
+		chapterURL, ok := s.Attr("href")
+		if ok {
+			chapters = append(chapters, entity.Chapter{
+				Title: chapterTitle,
+				URL:   chapterURL,
+			})
+		} else {
+			log.Printf("Chapter missing something, title: %s, url: %s", novel.Title, novel.URL)
+		}
+	})
+
+	novel.Chapters = chapters
+	novel.LastCrawlTime = time.Now()
+	return novel
+}
+
 // FetchChapter export
 func (fh *FetcherHjwzw) FetchChapter(novel *entity.Novel, index int) *string {
 	url := fh.GetChapterURL(novel, index)

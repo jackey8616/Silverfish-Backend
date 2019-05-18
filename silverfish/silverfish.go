@@ -1,6 +1,7 @@
 package silverfish
 
 import (
+	"time"
 	"log"
 	"strconv"
 
@@ -55,12 +56,16 @@ func (sf *Silverfish) getNovelByID(novelID *string) *entity.APIResponse {
 			Data: map[string]string{"reason": err.Error()},
 		}
 	}
-	novel = result.(*entity.Novel)
-	if time.Now().Sub(novel.LatCrawlTime).Days() > 1 {
+	
+	novel := result.(*entity.Novel)
+	if time.Since(novel.LastCrawlTime).Hours() > 24 {
 		log.Printf("Updating novel <novel_id: %s, title: %s>", novel.NovelID, novel.Title)
-		novel = sf.fetchers[result.DNS].UpdateNovelInfo(novel)
-		sf.mgoInf.Update(bson.M{"novelID": *novelID}, novel)
+		novel = sf.fetchers[novel.DNS].UpdateNovelInfo(novel)
+	} else {
+		novel.LastCrawlTime = time.Now()
 	}
+	sf.mgoInf.Update(bson.M{"novelID": *novelID}, novel)
+
 	return &entity.APIResponse{
 		Success: true,
 		Data:    novel,
