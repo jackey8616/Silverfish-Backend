@@ -94,6 +94,29 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 	}
 }
 
+// UpdateNovelInfo export
+func (f7 *Fetcher77xsw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
+	doc := f7.FetchDoc(&novel.URL)
+
+	chapters := []entity.Chapter{}
+	doc.Find("div#list-chapterAll > dl > dd > a").Each(func(i int, s *goquery.Selection) {
+		chapterTitle, ok0 := s.Attr("title")
+		chapterURL, ok1 := s.Attr("href")
+		if ok0 && ok1 {
+			chapters = append(chapters, entity.Chapter{
+				Title: f7.decoder.ConvertString(chapterTitle),
+				URL:   chapterURL,
+			})
+		} else {
+			log.Printf("Chapter missing something, title: %s, url: %s", novel.Title, novel.URL)
+		}
+	})
+
+	novel.Chapters = chapters
+	novel.LastCrawlTime = time.Now()
+	return novel
+}
+
 // FetchChapter export
 func (f7 *Fetcher77xsw) FetchChapter(novel *entity.Novel, index int) *string {
 	url := f7.GetChapterURL(novel, index)
