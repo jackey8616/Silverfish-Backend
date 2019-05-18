@@ -59,12 +59,11 @@ func (sf *Silverfish) getNovelByID(novelID *string) *entity.APIResponse {
 	
 	novel := result.(*entity.Novel)
 	if time.Since(novel.LastCrawlTime).Hours() > 24 {
-		log.Printf("Updating novel <novel_id: %s, title: %s>", novel.NovelID, novel.Title)
+		lastCrawlTime := novel.LastCrawlTime
 		novel = sf.fetchers[novel.DNS].UpdateNovelInfo(novel)
-	} else {
-		novel.LastCrawlTime = time.Now()
+		sf.mgoInf.Update(bson.M{"novelID": *novelID}, novel)
+		log.Printf("Updated novel <novel_id: %s, title: %s> since %s", novel.NovelID, novel.Title, lastCrawlTime)
 	}
-	sf.mgoInf.Update(bson.M{"novelID": *novelID}, novel)
 
 	return &entity.APIResponse{
 		Success: true,
