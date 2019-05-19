@@ -67,12 +67,12 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 		return nil
 	}
 
-	chapters := []entity.Chapter{}
+	chapters := []entity.NovelChapter{}
 	doc.Find("div#list-chapterAll > dl > dd > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle, ok0 := s.Attr("title")
 		chapterURL, ok1 := s.Attr("href")
 		if ok0 && ok1 {
-			chapters = append(chapters, entity.Chapter{
+			chapters = append(chapters, entity.NovelChapter{
 				Title: f7.decoder.ConvertString(chapterTitle),
 				URL:   chapterURL,
 			})
@@ -98,12 +98,12 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 func (f7 *Fetcher77xsw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
 	doc := f7.FetchDoc(&novel.URL)
 
-	chapters := []entity.Chapter{}
+	chapters := []entity.NovelChapter{}
 	doc.Find("div#list-chapterAll > dl > dd > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle, ok0 := s.Attr("title")
 		chapterURL, ok1 := s.Attr("href")
 		if ok0 && ok1 {
-			chapters = append(chapters, entity.Chapter{
+			chapters = append(chapters, entity.NovelChapter{
 				Title: f7.decoder.ConvertString(chapterTitle),
 				URL:   chapterURL,
 			})
@@ -117,8 +117,8 @@ func (f7 *Fetcher77xsw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
 	return novel
 }
 
-// FetchChapter export
-func (f7 *Fetcher77xsw) FetchChapter(novel *entity.Novel, index int) *string {
+// FetchNovelChapter export
+func (f7 *Fetcher77xsw) FetchNovelChapter(novel *entity.Novel, index int) *string {
 	url := f7.GetChapterURL(novel, index)
 	output := ""
 	doc := f7.FetchDoc(url)

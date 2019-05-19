@@ -35,8 +35,9 @@ func main() {
 	mode, port, debug, dbHost, allowCredentials, allowOrigins := modeInit()
 	log.Printf("Debug: %t, DbHost: %s", debug, dbHost)
 	session := dbInit(dbHost)
-	mgoInf := entity.NewMongoInf(session, session.DB("silverfish").C("novel"))
-	silverfish := silverfish.New(mgoInf, []string{
+	novelInf := entity.NewMongoInf(session, session.DB("silverfish").C("novel"))
+	comicInf := entity.NewMongoInf(session, session.DB("silverfish").C("comic"))
+	silverfish := silverfish.New(novelInf, comicInf, []string{
 		"http://www.77xsw.la/book/389/",
 		"http://www.77xsw.la/book/11072/",
 		"http://www.77xsw.la/book/11198/",
@@ -45,9 +46,15 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", helloWorld)
-	mux.HandleFunc("/api/v1/novel", silverfish.Router.V1Novel)
 	mux.HandleFunc("/api/v1/novels", silverfish.Router.V1Novels)
-	mux.HandleFunc("/api/v1/chapter", silverfish.Router.V1Chapter)
+	mux.HandleFunc("/api/v1/novel", silverfish.Router.V1Novel)
+	/* TODO: route should be /api/v1/novel/chapter
+			 This change will need to update Frontend's api calling. */
+	mux.HandleFunc("/api/v1/chapter", silverfish.Router.V1NovelChapter)
+	mux.HandleFunc("/api/v1/comics", silverfish.Router.V1Comics)
+	mux.HandleFunc("/api/v1/comic", silverfish.Router.V1Comic)
+	mux.HandleFunc("/api/v1/comic/chapter", silverfish.Router.V1ComicChapter)
+
 
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   allowOrigins,
