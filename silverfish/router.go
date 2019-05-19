@@ -17,6 +17,20 @@ func NewRouter(sf *Silverfish) *Router {
 	return rr
 }
 
+
+// V1Novels export
+func (rr *Router) V1Novels(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		response := rr.sf.getNovels()
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
 // V1Novel export
 func (rr *Router) V1Novel(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -45,21 +59,8 @@ func (rr *Router) V1Novel(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// V1Novels export
-func (rr *Router) V1Novels(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		w.Header().Set("Content-Type", "application/json")
-		response := rr.sf.getNovels()
-		js, _ := json.Marshal(response)
-		w.Write(js)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
-
-// V1Chapter export
-func (rr *Router) V1Chapter(w http.ResponseWriter, r *http.Request) {
+// V1NovelChapter export
+func (rr *Router) V1NovelChapter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		novelID := r.URL.Query().Get("novel_id")
@@ -68,7 +69,67 @@ func (rr *Router) V1Chapter(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getChapter(&novelID, &chapterIndex)
+			response := rr.sf.getNovelChapter(&novelID, &chapterIndex)
+			js, _ := json.Marshal(response)
+			w.Write(js)
+		}
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// V1Comics export
+func (rr *Router) V1Comics(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		response := rr.sf.getComics()
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// V1Comic export
+func (rr *Router) V1Comic(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		comicID := r.URL.Query().Get("comic_id")
+		if comicID != "" {
+			w.Header().Set("Content-Type", "application/json")
+			response := rr.sf.getComicByID(&comicID)
+			js, _ := json.Marshal(response)
+			w.Write(js)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	case http.MethodPost:
+		comicURL := r.FormValue("comic_url")
+		if comicURL != "" {
+			w.Header().Set("Content-Type", "application/json")
+			response := rr.sf.getComicByURL(&comicURL)
+			js, _ := json.Marshal(response)
+			w.Write(js)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// V1ComicChapter export
+func (rr *Router) V1ComicChapter(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		comicID := r.URL.Query().Get("comic_id")
+		chapterIndex := r.URL.Query().Get("chapter_index")
+		if comicID == "" || chapterIndex == "" {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+			response := rr.sf.getComicChapter(&comicID, &chapterIndex)
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		}

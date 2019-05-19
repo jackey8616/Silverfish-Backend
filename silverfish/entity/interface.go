@@ -11,5 +11,15 @@ type NovelFetcher interface {
 	IsSplit(doc *goquery.Document) bool
 	Filter(raw *string) *string
 	FetchNovelInfo(url *string) *Novel
-	FetchChapter(novelID *Novel, index int) *string
+	FetchNovelChapter(novel *Novel, index int) *string
+}
+
+// ComicFetcher export
+type ComicFetcher interface {
+	Match(url *string) bool
+	FetchDoc(url *string) *goquery.Document
+
+	GetChapterURL(comic *Comic, url string) *string
+	FetchComicInfo(url *string) *Comic
+	FetchComicChapter(comic *Comic, index int) []string
 }

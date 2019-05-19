@@ -58,12 +58,12 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 		return nil
 	}
 
-	chapters := []entity.Chapter{}
+	chapters := []entity.NovelChapter{}
 	doc.Find("div#tbchapterlist > table > tbody > tr > td > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Text()
 		chapterURL, ok := s.Attr("href")
 		if ok {
-			chapters = append(chapters, entity.Chapter{
+			chapters = append(chapters, entity.NovelChapter{
 				Title: chapterTitle,
 				URL:   chapterURL,
 			})
@@ -85,8 +85,8 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 	}
 }
 
-// FetchChapter export
-func (fh *FetcherHjwzw) FetchChapter(novel *entity.Novel, index int) *string {
+// FetchNovelChapter export
+func (fh *FetcherHjwzw) FetchNovelChapter(novel *entity.Novel, index int) *string {
 	url := fh.GetChapterURL(novel, index)
 	doc := fh.FetchDoc(url)
 
