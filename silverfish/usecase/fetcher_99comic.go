@@ -44,7 +44,7 @@ func (f9 *Fetcher99Comic) FetchComicInfo(url *string) *entity.Comic {
 	}
 
 	chapters := []entity.ComicChapter{}
-	doc.Find("ul#chapter-list-3 > li > a").Each(func(i int, s *goquery.Selection) {
+	doc.Find("ul#chapter-list-3,ul#chapter-list-2 > li > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := strings.Replace(s.Find("span.list_con_zj").Text(), " ", "", -1)
 		chapterURL, ok := s.Attr("href")
 		if ok {
@@ -76,7 +76,7 @@ func (f9 *Fetcher99Comic) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
 	doc := f9.FetchDoc(&comic.URL)
 
 	chapters := []entity.ComicChapter{}
-	doc.Find("ul#chapter-list-3 > li > a").Each(func(i int, s *goquery.Selection) {
+	doc.Find("ul#chapter-list-3,ul#chapter-list-2 > li > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := strings.Replace(s.Find("span.list_con_zj").Text(), " ", "", -1)
 		chapterURL, ok := s.Attr("href")
 		if ok {
