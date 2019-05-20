@@ -74,6 +74,32 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) *entity.Comic {
 	}
 }
 
+// UpdateComicInfo export
+func (fn *FetcherNokiacn) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
+	doc := fn.FetchDoc(&comic.URL)
+
+	chapters := []entity.ComicChapter{}
+	doc.Find("ul#mh-chapter-list-ol-0 > li > a").Each(func(i int, s *goquery.Selection) {
+		chapterTitle := s.Find("p").Text()
+		chapterURL, ok := s.Attr("href")
+		if ok {
+			chapters = append([]entity.ComicChapter{
+				entity.ComicChapter{
+					Title:		chapterTitle,
+					URL:		chapterURL,
+					ImageURL:	[]string{},
+				},
+			}, chapters...)
+		} else {
+			log.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
+		}
+	})
+
+	comic.Chapters = chapters
+	comic.LastCrawlTime = time.Now()
+	return comic
+}
+
 // FetchComicChapter export
 func (fn *FetcherNokiacn) FetchComicChapter(comic *entity.Comic, index int) []string {
 	comicURLs := []string{}

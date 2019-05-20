@@ -163,6 +163,15 @@ func (sf *Silverfish) getComicByID(comicID *string) *entity.APIResponse {
 			Data: map[string]string{"reason": err.Error()},
 		}
 	}
+
+	comic := result.(*entity.Comic)
+	if time.Since(comic.LastCrawlTime).Hours() > 24 {
+		lastCrawlTime := comic.LastCrawlTime
+		comic = sf.comicFetchers[comic.DNS].UpdateComicInfo(comic)
+		sf.comicInf.Update(bson.M{"comicID": *comicID}, comic)
+		log.Printf("Updated novel <novel_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
+	}
+
 	return &entity.APIResponse{
 		Success: true,
 		Data:	 result.(*entity.Comic),

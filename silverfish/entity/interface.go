@@ -22,5 +22,6 @@ type ComicFetcher interface {
 
 	GetChapterURL(comic *Comic, url string) *string
 	FetchComicInfo(url *string) *Comic
+	UpdateComicInfo(comic *Comic) *Comic
 	FetchComicChapter(comic *Comic, index int) []string
 }
