@@ -169,7 +169,7 @@ func (sf *Silverfish) getComicByID(comicID *string) *entity.APIResponse {
 		lastCrawlTime := comic.LastCrawlTime
 		comic = sf.comicFetchers[comic.DNS].UpdateComicInfo(comic)
 		sf.comicInf.Update(bson.M{"comicID": *comicID}, comic)
-		log.Printf("Updated novel <novel_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
+		log.Printf("Updated comic <comic_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
 	}
 
 	return &entity.APIResponse{
