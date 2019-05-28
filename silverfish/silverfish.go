@@ -41,7 +41,7 @@ func New(novelInf, comicInf *entity.MongoInf, urls []string) *Silverfish {
 // getNovels
 func (sf *Silverfish) getNovels() *entity.APIResponse {
 	result, err := sf.novelInf.FindSelectAll(nil, bson.M{
-		"novelID": 1, "coverUrl": 1, "title": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
+		"novelID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
 	if err != nil {
 		return &entity.APIResponse{
 			Fail: true,
@@ -141,7 +141,7 @@ func (sf *Silverfish) getNovelChapter(novelID, chapterIndex *string) *entity.API
 // getComics
 func (sf *Silverfish) getComics() *entity.APIResponse {
 	result, err := sf.comicInf.FindSelectAll(nil, bson.M{
-		"comicID": 1, "coverUrl": 1, "title": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
+		"comicID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
 	if err != nil {
 		return &entity.APIResponse{
 			Fail: true,

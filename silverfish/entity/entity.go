@@ -13,6 +13,7 @@ type APIResponse struct {
 type NovelInfo struct {
 	NovelID       string    `json:"novelID" bson:"novelID"`
 	Title         string    `json:"title" bson:"title"`
+	Author        string    `json:"author" bson:"author"`
 	CoverURL      string    `json:"coverUrl" bson:"coverUrl"`
 	LastCrawlTime time.Time `json:"lastCrawlTime" bson:"lastCrawlTime"`
 }
@@ -40,6 +41,7 @@ type Novel struct {
 type ComicInfo struct {
 	ComicID       string    `json:"comicID" bson:"comicID"`
 	Title         string    `json:"title" bson:"title"`
+	Author        string    `json:"author" bson:"author"`
 	CoverURL      string    `json:"coverUrl" bson:"coverUrl"`
 	LastCrawlTime time.Time `json:"lastCrawlTime" bson:"lastCrawlTime"`
 }
