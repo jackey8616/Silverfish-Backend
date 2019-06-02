@@ -13,6 +13,7 @@ import (
 // Silverfish export
 type Silverfish struct {
 	Router        *Router
+	Auth		  *Auth
 	novelInf      *entity.MongoInf
 	comicInf      *entity.MongoInf
 	novelFetchers map[string]entity.NovelFetcher
@@ -21,9 +22,10 @@ type Silverfish struct {
 }
 
 // New export
-func New(novelInf, comicInf *entity.MongoInf, urls []string) *Silverfish {
+func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf, urls []string) *Silverfish {
 	sf := new(Silverfish)
 	sf.Router = NewRouter(sf)
+	sf.Auth = NewAuth(hashSalt, userInf)
 	sf.novelInf = novelInf
 	sf.comicInf = comicInf
 	sf.urls = urls

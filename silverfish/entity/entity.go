@@ -9,6 +9,14 @@ type APIResponse struct {
 	Data    interface{} `json:"data"`
 }
 
+// User export
+type User struct {
+	Account 		  string	`json:"account" bson:"account"`
+	Password 		  string	`json:"password" bson:"password"`
+	RegisterDatetime  time.Time `json:"registerDatetime" bson:"registerDatetime"`
+	LastLoginDatetime time.Time `json:"lastLoginDatetime" bson:"lastLoginDatetime"`
+}
+
 // NovelInfo export
 type NovelInfo struct {
 	NovelID       string    `json:"novelID" bson:"novelID"`
