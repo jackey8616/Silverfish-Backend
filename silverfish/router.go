@@ -92,6 +92,7 @@ func (rr *Router) V1Novel(w http.ResponseWriter, r *http.Request) {
 func (rr *Router) V1NovelChapter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
+		account := r.Header.Get("Reader")
 		novelID := r.URL.Query().Get("novel_id")
 		chapterIndex := r.URL.Query().Get("chapter_index")
 		if novelID == "" || chapterIndex == "" {
@@ -99,6 +100,9 @@ func (rr *Router) V1NovelChapter(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			response := rr.sf.getNovelChapter(&novelID, &chapterIndex)
+			if account != "" && account != "guest" {
+				go rr.sf.Auth.UpdateBookmark("Novel", &novelID, &account, &chapterIndex)
+			}
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		}
@@ -152,6 +156,7 @@ func (rr *Router) V1Comic(w http.ResponseWriter, r *http.Request) {
 func (rr *Router) V1ComicChapter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
+		account := r.Header.Get("Reader")
 		comicID := r.URL.Query().Get("comic_id")
 		chapterIndex := r.URL.Query().Get("chapter_index")
 		if comicID == "" || chapterIndex == "" {
@@ -159,6 +164,9 @@ func (rr *Router) V1ComicChapter(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Header().Set("Content-Type", "application/json")
 			response := rr.sf.getComicChapter(&comicID, &chapterIndex)
+			if account != "" && account != "guest" {
+				go rr.sf.Auth.UpdateBookmark("Comic", &comicID, &account, &chapterIndex)
+			}
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		}
