@@ -38,26 +38,27 @@ func (a *Auth) sha512Str(src *string) *string {
 func (a *Auth) Register(account, password *string) *entity.APIResponse {
 	hashedPassword := a.sha512Str(password)
 	_, err := a.userInf.FindOne(bson.M{"account": *account}, &entity.User{})
-	if err.Error() == "not found" {
-		registerTime := time.Now()
-		user := &entity.User{
-			Account: *account,
-			Password: *hashedPassword,
-			RegisterDatetime: registerTime,
-			LastLoginDatetime: registerTime,
-			Bookmark: &entity.Bookmark{},
+	if err != nil {
+		if err.Error() == "not found" {
+			registerTime := time.Now()
+			user := &entity.User{
+				Account: *account,
+				Password: *hashedPassword,
+				RegisterDatetime: registerTime,
+				LastLoginDatetime: registerTime,
+				Bookmark: &entity.Bookmark{},
+			}
+			a.userInf.Upsert(bson.M{"account": *account}, user)
+			return &entity.APIResponse{
+				Success: true,
+				Data: &entity.User{
+					Account: 		   user.Account,
+					RegisterDatetime:  user.RegisterDatetime,
+					LastLoginDatetime: user.LastLoginDatetime,
+					Bookmark:          user.Bookmark,
+				},
+			}
 		}
-		a.userInf.Upsert(bson.M{"account": *account}, user)
-		return &entity.APIResponse{
-			Success: true,
-			Data: &entity.User{
-				Account: 		   user.Account,
-				RegisterDatetime:  user.RegisterDatetime,
-				LastLoginDatetime: user.LastLoginDatetime,
-				Bookmark:          user.Bookmark,
-			},
-		}
-	} else if err != nil {
 		return &entity.APIResponse{
 			Fail: true,
 			Data: map[string]string{"reason": err.Error()},
