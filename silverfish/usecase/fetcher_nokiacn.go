@@ -2,10 +2,9 @@ package usecase
 
 import (
 	"log"
-	"strings"
-	//"strconv"
 	"time"
 	"regexp"
+	"strings"
 	"encoding/base64"
 
 	"github.com/PuerkitoBio/goquery"

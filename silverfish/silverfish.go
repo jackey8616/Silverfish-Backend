@@ -34,6 +34,7 @@ func New(novelInf, comicInf *entity.MongoInf, urls []string) *Silverfish {
 	sf.comicFetchers = map[string]entity.ComicFetcher{
 		"www.99comic.co": usecase.NewFetcher99Comic("www.99comic.co"),
 		"www.nokiacn.net": usecase.NewFetcherNokiacn("www.nokiacn.net"),
+		"www.cartoonmad.com": usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
 	}
 	return sf
 }

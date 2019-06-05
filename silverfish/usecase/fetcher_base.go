@@ -1,12 +1,14 @@
 package usecase
 
 import (
-	"crypto/md5"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
+	"net/http"
+	"crypto/md5"
 
+	"github.com/djimenez/iconv-go"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
 
@@ -41,6 +43,31 @@ func (f *Fetcher) Match(url *string) bool {
 // FetchDoc export
 func (f *Fetcher) FetchDoc(url *string) *goquery.Document {
 	doc, err := goquery.NewDocument(*url)
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "When FetchDoc"))
+		return nil
+	}
+	return doc
+}
+
+// FetchDocWithEncoding export
+func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) *goquery.Document {
+	res, err := http.Get(*url)
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "When Get"))
+	}
+	defer res.Body.Close()
+	
+	// Convert the designated charset HTML to utf-8 encoded HTML.
+	// `charset` being one of the charsets known by the iconv package.
+	utfBody, err := iconv.NewReader(res.Body, charset, "utf-8")
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "When Convert UTF-8"))
+		return nil
+	}
+	
+	// use utfBody using goquery
+	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "When FetchDoc"))
 		return nil
