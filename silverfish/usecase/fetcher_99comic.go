@@ -101,7 +101,7 @@ func (f9 *Fetcher99Comic) FetchComicChapter(comic *entity.Comic, index int) []st
 	firstPageURL := f9.GetChapterURL(comic, comic.Chapters[index].URL)
 	firstPage, _ := f9.FetchDoc(firstPageURL).Html()
 
-	rChapterImages, _ := regexp.Compile(`;var chapterImages = \[.*?\];`)
+	rChapterImages, _ := regexp.Compile(`images: \[.*?\],`)
 	rImages,_ := regexp.Compile(`".*?"`)
 	images := rImages.FindAllString(rChapterImages.FindString(firstPage), -1)
 	for i := 0; i < len(images); i++ {
