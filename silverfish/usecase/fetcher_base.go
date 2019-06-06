@@ -55,6 +55,7 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) *goquery.Doc
 	res, err := http.Get(*url)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "When Get"))
+		return nil
 	}
 	defer res.Body.Close()
 	
@@ -69,7 +70,7 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) *goquery.Doc
 	// use utfBody using goquery
 	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "When FetchDoc"))
+		log.Fatal(errors.Wrap(err, "When FetchDocWithEncoding"))
 		return nil
 	}
 	return doc

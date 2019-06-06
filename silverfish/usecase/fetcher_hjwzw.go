@@ -88,7 +88,8 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 
 // UpdateNovelInfo export
 func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
-	doc := fh.FetchDoc(&novel.URL)
+	chapterURL := strings.Replace(novel.URL, "Book", "Book/Chapter", 1)
+	doc := fh.FetchDoc(&chapterURL)
 
 	chapters := []entity.NovelChapter{}
 	doc.Find("div#tbchapterlist > table > tbody > tr > td > a").Each(func(i int, s *goquery.Selection) {
@@ -114,7 +115,7 @@ func (fh *FetcherHjwzw) FetchNovelChapter(novel *entity.Novel, index int) *strin
 	url := fh.GetChapterURL(novel, index)
 	doc := fh.FetchDoc(url)
 
-	anchor := doc.Find("#form1 > table > tbody > tr > td > div > p > a")
+	anchor := doc.Find("a[title='" + novel.Title + "']")
 	novelDiv := anchor.Parent().Parent()
 	novelContent, _ := novelDiv.Html()
 
