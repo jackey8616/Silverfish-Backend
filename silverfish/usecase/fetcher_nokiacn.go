@@ -39,6 +39,8 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) *entity.Comic {
 	author := doc.Find("div.cy_xinxi:nth-child(4) > span > a").Text()
 	description := doc.Find("p#comic-description").Text()
 	coverURL, ok := doc.Find("div.cy_info_cover > a > img").Attr("src")
+	// The coverURL is still using 55888, manual replace it.
+	coverURL = strings.Replace(coverURL, ":55888", "", 1)
 	if title == "" || author == "" || description == "'" || !ok {
 		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 		return nil
