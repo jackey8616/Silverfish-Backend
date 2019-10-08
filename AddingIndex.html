@@ -1,7 +1,15 @@
 <h5>Register</h5>
 <form method="POST" action="http://127.0.0.1:8080/auth/register">
+    <label>Local</label>
     <input name="account" placeholder="Account"/>
-    <input name="password" placeholder="Password"/>
+    <input name="password" type="password" placeholder="Password"/>
+    <button type="submit">Submit</button>
+</form>
+
+<form method="POST" action="https://silverfish-backend.clo5de.info:2087/auth/register">
+    <label>Remote</label>
+    <input name="account" placeholder="Account"/>
+    <input name="password" type="password" placeholder="Password"/>
     <button type="submit">Submit</button>
 </form>
 
@@ -9,11 +17,18 @@
 
 <h5>Login</h5>
 <form method="POST" action="http://127.0.0.1:8080/auth/login">
+    <label>Local</label>
     <input name="account" placeholder="Account"/>
-    <input name="password" placeholder="Password"/>
+    <input name="password" type="password" placeholder="Password"/>
     <button type="submit">Submit</button>
 </form>
 
+<form method="POST" action="https://silverfish-backend.clo5de.info:2087/auth/login">
+    <label>Remote</label>
+    <input name="account" placeholder="Account"/>
+    <input name="password" type="password" placeholder="Password"/>
+    <button type="submit">Submit</button>
+</form>
 <hr>
 
 <h5>Novels</h5>
