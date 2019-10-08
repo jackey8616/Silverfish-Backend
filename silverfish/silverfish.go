@@ -1,19 +1,20 @@
 package silverfish
 
 import (
-	"time"
 	"log"
 	"strconv"
+	"time"
 
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
-	"github.com/jackey8616/Silverfish-backend/silverfish/usecase"
+	entity "silverfish/silverfish/entity"
+	usecase "silverfish/silverfish/usecase"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
 // Silverfish export
 type Silverfish struct {
 	Router        *Router
-	Auth		  *Auth
+	Auth          *Auth
 	novelInf      *entity.MongoInf
 	comicInf      *entity.MongoInf
 	novelFetchers map[string]entity.NovelFetcher
@@ -34,7 +35,7 @@ func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf, urls []
 		"tw.hjwzw.com": usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 	}
 	sf.comicFetchers = map[string]entity.ComicFetcher{
-		"www.99comic.co": usecase.NewFetcher99Comic("www.99comic.co"),
+		"www.99comic.co":  usecase.NewFetcher99Comic("www.99comic.co"),
 		"www.nokiacn.net": usecase.NewFetcherNokiacn("www.nokiacn.net"),
 	}
 	return sf
@@ -65,7 +66,7 @@ func (sf *Silverfish) getNovelByID(novelID *string) *entity.APIResponse {
 			Data: map[string]string{"reason": err.Error()},
 		}
 	}
-	
+
 	novel := result.(*entity.Novel)
 	if time.Since(novel.LastCrawlTime).Hours() > 24 {
 		lastCrawlTime := novel.LastCrawlTime
@@ -152,7 +153,7 @@ func (sf *Silverfish) getComics() *entity.APIResponse {
 	}
 	return &entity.APIResponse{
 		Success: true,
-		Data: 	 result.(*[]entity.ComicInfo),
+		Data:    result.(*[]entity.ComicInfo),
 	}
 }
 
@@ -176,7 +177,7 @@ func (sf *Silverfish) getComicByID(comicID *string) *entity.APIResponse {
 
 	return &entity.APIResponse{
 		Success: true,
-		Data:	 result.(*entity.Comic),
+		Data:    result.(*entity.Comic),
 	}
 }
 

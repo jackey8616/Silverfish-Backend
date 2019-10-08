@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/jackey8616/Silverfish-backend/silverfish"
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
+	silverfish "silverfish/silverfish"
+	entity "silverfish/silverfish/entity"
+
 	"github.com/rs/cors"
 	"gopkg.in/mgo.v2"
 )
@@ -58,16 +59,16 @@ func main() {
 	mux.HandleFunc("/api/v1/novels", silverfish.Router.V1Novels)
 	mux.HandleFunc("/api/v1/novel", silverfish.Router.V1Novel)
 	/* TODO: route should be /api/v1/novel/chapter
-			 This change will need to update Frontend's api calling. */
+	This change will need to update Frontend's api calling. */
 	mux.HandleFunc("/api/v1/chapter", silverfish.Router.V1NovelChapter)
+	mux.HandleFunc("/api/v1/novel/chapter", silverfish.Router.V1NovelChapter)
 	mux.HandleFunc("/api/v1/comics", silverfish.Router.V1Comics)
 	mux.HandleFunc("/api/v1/comic", silverfish.Router.V1Comic)
 	mux.HandleFunc("/api/v1/comic/chapter", silverfish.Router.V1ComicChapter)
 
-
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   allowOrigins,
-		AllowedHeaders:	  []string{"Reader"},
+		AllowedHeaders:   []string{"Reader"},
 		AllowCredentials: allowCredentials,
 		Debug:            debug,
 	}).Handler(mux)

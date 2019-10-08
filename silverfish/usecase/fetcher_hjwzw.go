@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
+	entity "silverfish/silverfish/entity"
+
 	"github.com/PuerkitoBio/goquery"
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
 )
 
 // FetcherHjwzw export
@@ -113,7 +114,7 @@ func (fh *FetcherHjwzw) FetchNovelChapter(novel *entity.Novel, index int) *strin
 	url := fh.GetChapterURL(novel, index)
 	doc := fh.FetchDoc(url)
 
-	anchor := doc.Find("#form1 > table > tbody > tr > td > div > p > a")
+	anchor := doc.Find("a[title='" + novel.Title + "']")
 	novelDiv := anchor.Parent().Parent()
 	novelContent, _ := novelDiv.Html()
 

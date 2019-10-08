@@ -6,6 +6,8 @@ github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394 h1:OYA+5W64v3OgClL+I
 github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394/go.mod h1:Q8n74mJTIgjX4RBBcHnJ05h//6/k6foqmgE45jTQtxg=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/djimenez/iconv-go v0.0.0-20160305225143-8960e66bd3da h1:0qwwqQCLOOXPl58ljnq3sTJR7yRuMolM02vjxDh4ZVE=
+github.com/djimenez/iconv-go v0.0.0-20160305225143-8960e66bd3da/go.mod h1:ns+zIWBBchgfRdxNgIJWn2x6U95LQchxeqiN5Cgdgts=
 github.com/gravityblast/go-base62 v0.0.0-20131214171223-d5f2747573ce h1:cZ4nzfwlUPdIzGcndVLWVPsPIKzrCMjj8fePW8f+qc4=
 github.com/gravityblast/go-base62 v0.0.0-20131214171223-d5f2747573ce/go.mod h1:6WBARxayU4ZsIOxtv0CmMpDTkTbKB7ea8Ur3SfWkpoY=
 github.com/kenshaw/baseconv v0.0.0-20180401001559-5ac6a1b7584c h1:Uct0wp6cyJPNXJd9c+4w3YZDWTNFdeZ7lMXU7l04o/o=

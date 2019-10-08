@@ -3,13 +3,15 @@ package usecase
 import (
 	"log"
 	"strings"
+
 	//"strconv"
-	"time"
-	"regexp"
 	"encoding/base64"
+	"regexp"
+	"time"
+
+	entity "silverfish/silverfish/entity"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
 )
 
 // FetcherNokiacn export
@@ -51,9 +53,9 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) *entity.Comic {
 		if ok {
 			chapters = append([]entity.ComicChapter{
 				entity.ComicChapter{
-					Title:		chapterTitle,
-					URL:		chapterURL,
-					ImageURL:	[]string{},
+					Title:    chapterTitle,
+					URL:      chapterURL,
+					ImageURL: []string{},
 				},
 			}, chapters...)
 		} else {
@@ -85,9 +87,9 @@ func (fn *FetcherNokiacn) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
 		if ok {
 			chapters = append([]entity.ComicChapter{
 				entity.ComicChapter{
-					Title:		chapterTitle,
-					URL:		chapterURL,
-					ImageURL:	[]string{},
+					Title:    chapterTitle,
+					URL:      chapterURL,
+					ImageURL: []string{},
 				},
 			}, chapters...)
 		} else {
@@ -108,7 +110,7 @@ func (fn *FetcherNokiacn) FetchComicChapter(comic *entity.Comic, index int) []st
 
 	rImages, _ := regexp.Compile(`var qTcms_S_m_murl_e=\".*?\";`)
 	base64Code := rImages.FindString(firstPage)
-	decode, _ := base64.StdEncoding.DecodeString(base64Code[22:len(base64Code)-2])
+	decode, _ := base64.StdEncoding.DecodeString(base64Code[22 : len(base64Code)-2])
 	images := strings.Split(string(decode), "$qingtiandy$")
 
 	for i := 0; i < len(images); i++ {

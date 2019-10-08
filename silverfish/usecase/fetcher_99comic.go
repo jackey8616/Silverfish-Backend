@@ -3,12 +3,14 @@ package usecase
 import (
 	"log"
 	"strings"
+
 	//"strconv"
+	"regexp"
 	"time"
-	"regexp"  
+
+	entity "silverfish/silverfish/entity"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
 )
 
 // Fetcher99Comic export
@@ -49,9 +51,9 @@ func (f9 *Fetcher99Comic) FetchComicInfo(url *string) *entity.Comic {
 		chapterURL, ok := s.Attr("href")
 		if ok {
 			chapters = append(chapters, entity.ComicChapter{
-				Title:		chapterTitle,
-				URL:		chapterURL,
-				ImageURL:	[]string{},
+				Title:    chapterTitle,
+				URL:      chapterURL,
+				ImageURL: []string{},
 			})
 		} else {
 			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
@@ -81,9 +83,9 @@ func (f9 *Fetcher99Comic) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
 		chapterURL, ok := s.Attr("href")
 		if ok {
 			chapters = append(chapters, entity.ComicChapter{
-				Title:		chapterTitle,
-				URL:		chapterURL,
-				ImageURL:	[]string{},
+				Title:    chapterTitle,
+				URL:      chapterURL,
+				ImageURL: []string{},
 			})
 		} else {
 			log.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
@@ -102,10 +104,10 @@ func (f9 *Fetcher99Comic) FetchComicChapter(comic *entity.Comic, index int) []st
 	firstPage, _ := f9.FetchDoc(firstPageURL).Html()
 
 	rChapterImages, _ := regexp.Compile(`;var chapterImages = \[.*?\];`)
-	rImages,_ := regexp.Compile(`".*?"`)
+	rImages, _ := regexp.Compile(`".*?"`)
 	images := rImages.FindAllString(rChapterImages.FindString(firstPage), -1)
 	for i := 0; i < len(images); i++ {
-		images[i] = images[i][1:len(images[i]) - 1]
+		images[i] = images[i][1 : len(images[i])-1]
 		imageURL := "http://comic.allviki.com/" + strings.Replace(images[i], `\/`, "/", 1)
 		comicURLs = append(comicURLs, imageURL)
 	}
