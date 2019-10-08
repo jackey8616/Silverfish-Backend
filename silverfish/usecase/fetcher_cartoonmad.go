@@ -1,16 +1,17 @@
 package usecase
 
 import (
-	"log"
 	"fmt"
-	"time"
-	"strings"
-	"strconv"
+	"log"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 
-	"github.com/pkg/errors"
+	entity "silverfish/silverfish/entity"
+
 	"github.com/PuerkitoBio/goquery"
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
+	"github.com/pkg/errors"
 )
 
 // FetcherCartoonmad export
@@ -34,11 +35,12 @@ func (fc *FetcherCartoonmad) GetChapterURL(comic *entity.Comic, chapterURL strin
 // FetchComicInfo export
 func (fc *FetcherCartoonmad) FetchComicInfo(url *string) *entity.Comic {
 	if strings.Contains(*url, "/m/") == false {
-		temp := strings.Replace(*url, "/comic/", "/m/comic/", 1); url = &temp
+		temp := strings.Replace(*url, "/comic/", "/m/comic/", 1)
+		url = &temp
 	}
 	doc := fc.FetchDocWithEncoding(url, "Big5")
 	id := fc.GenerateID(url)
-	
+
 	anchor := doc.Find("table:nth-of-type(2) > tbody > tr:nth-of-type(2) > td")
 	title, err0 := doc.Find("meta[name='Keywords']").Attr("content")
 	title = strings.Split(title, ",")[0]
@@ -61,9 +63,9 @@ func (fc *FetcherCartoonmad) FetchComicInfo(url *string) *entity.Comic {
 		if ok {
 			chapterURL = strings.Replace(chapterURL, "/m/comic/", "/comic/", 1)
 			chapters = append(chapters, entity.ComicChapter{
-				Title:		chapterTitle,
-				URL:		chapterURL,
-				ImageURL:	[]string{},
+				Title:    chapterTitle,
+				URL:      chapterURL,
+				ImageURL: []string{},
 			})
 		} else {
 			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
@@ -94,9 +96,9 @@ func (fc *FetcherCartoonmad) UpdateComicInfo(comic *entity.Comic) *entity.Comic 
 		if ok {
 			chapterURL = strings.Replace(chapterURL, "/m/comic/", "/comic/", 1)
 			chapters = append(chapters, entity.ComicChapter{
-				Title:		chapterTitle,
-				URL:		chapterURL,
-				ImageURL:	[]string{},
+				Title:    chapterTitle,
+				URL:      chapterURL,
+				ImageURL: []string{},
 			})
 		} else {
 			log.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
@@ -116,7 +118,7 @@ func (fc *FetcherCartoonmad) FetchComicChapter(comic *entity.Comic, index int) [
 
 	lastIndex, _ := strconv.Atoi(doc.Find("table > tbody > tr:nth-of-type(6) > td > a:nth-last-of-type(2)").Text())
 	partImageURL, _ := doc.Find("table > tbody > tr:nth-of-type(5) > td > table > tbody > tr > td > a > img").Attr("src")
-	imageURL := fc.GetChapterURL(comic, "/comic/" + partImageURL)
+	imageURL := fc.GetChapterURL(comic, "/comic/"+partImageURL)
 	touchedURL := fc.touchImage(url, imageURL)
 
 	for i := 1; i <= lastIndex; i++ {

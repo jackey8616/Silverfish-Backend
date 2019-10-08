@@ -8,8 +8,9 @@ import (
 	"regexp"
 	"time"
 
+	entity "silverfish/silverfish/entity"
+
 	"github.com/PuerkitoBio/goquery"
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
 )
 
 // Fetcher99Comic export

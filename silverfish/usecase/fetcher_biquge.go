@@ -2,12 +2,13 @@ package usecase
 
 import (
 	"log"
-	"time"
 	"strings"
+	"time"
+
+	entity "silverfish/silverfish/entity"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/axgle/mahonia"
-	"github.com/jackey8616/Silverfish-backend/silverfish/entity"
 )
 
 // FetcherBiquge export
@@ -62,7 +63,7 @@ func (fb *FetcherBiquge) FetchNovelInfo(url *string) *entity.Novel {
 	doc.Find("div[id='list'] > dl > dd > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Text()
 		chapterURL, ok := s.Attr("href")
-		if  chapterTitle != "" && ok {
+		if chapterTitle != "" && ok {
 			chapters = append(chapters, entity.NovelChapter{
 				Title: fb.decoder.ConvertString(chapterTitle),
 				URL:   chapterURL,
@@ -93,7 +94,7 @@ func (fb *FetcherBiquge) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
 	doc.Find("div[id='list'] > dl > dd > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Text()
 		chapterURL, ok := s.Attr("href")
-		if  chapterTitle != "" && ok {
+		if chapterTitle != "" && ok {
 			chapters = append(chapters, entity.NovelChapter{
 				Title: fb.decoder.ConvertString(chapterTitle),
 				URL:   chapterURL,
