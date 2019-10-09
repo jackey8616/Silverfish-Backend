@@ -13,7 +13,8 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-func modeInit() (*string, string, string, bool, string, bool, []string) {
+func modeInit() (*string, *string, string, string, bool, string, bool, []string) {
+	recaptchaPrivateKey := os.Getenv("recaptcha_key")
 	hashSalt := os.Getenv("hash_salt")
 	mode := os.Getenv("mode")
 	port := os.Getenv("port")
@@ -24,13 +25,16 @@ func modeInit() (*string, string, string, bool, string, bool, []string) {
 		log.Println("Without `hash_salt` env assign, default salt will be use.")
 		hashSalt = "THIS_IS_A_VERY_COMPLICATED_HASH_SALT_FOR_SILVERFISH_BACKEND"
 	}
+	if recaptchaPrivateKey == "" {
+		log.Fatal("env recaptcha_key is needed.")
+	}
 
 	if mode == "prod" {
 		log.Println("With `prod` mode, dbHost will be `mongo:27017`.")
-		return &hashSalt, mode, port, false, "mongo:27017", false,
+		return &recaptchaPrivateKey, &hashSalt, mode, port, false, "mongo:27017", false,
 			[]string{"https://jackey8616.github.io", "http://jackey8616.github.io", "https://*.clo5de.info", "http://*.clo5de.info"}
 	}
-	return &hashSalt, mode, port, true, "127.0.0.1:27017", true, []string{"*"}
+	return &recaptchaPrivateKey, &hashSalt, mode, port, true, "127.0.0.1:27017", true, []string{"*"}
 }
 
 func dbInit(mongoHost string) *mgo.Session {
@@ -39,13 +43,13 @@ func dbInit(mongoHost string) *mgo.Session {
 }
 
 func main() {
-	hashSalt, mode, port, debug, dbHost, allowCredentials, allowOrigins := modeInit()
+	recaptchaPrivateKey, hashSalt, mode, port, debug, dbHost, allowCredentials, allowOrigins := modeInit()
 	log.Printf("Debug: %t, DbHost: %s", debug, dbHost)
 	session := dbInit(dbHost)
 	userInf := entity.NewMongoInf(session, session.DB("silverfish").C("user"))
 	novelInf := entity.NewMongoInf(session, session.DB("silverfish").C("novel"))
 	comicInf := entity.NewMongoInf(session, session.DB("silverfish").C("comic"))
-	silverfish := silverfish.New(hashSalt, userInf, novelInf, comicInf, []string{
+	silverfish := silverfish.New(hashSalt, recaptchaPrivateKey, userInf, novelInf, comicInf, []string{
 		"http://www.77xsw.la/book/389/",
 		"http://www.77xsw.la/book/11072/",
 		"http://www.77xsw.la/book/11198/",

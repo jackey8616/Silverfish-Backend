@@ -23,21 +23,21 @@ type Silverfish struct {
 }
 
 // New export
-func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf, urls []string) *Silverfish {
+func New(hashSalt, recaptchaPrivateKey *string, userInf, novelInf, comicInf *entity.MongoInf, urls []string) *Silverfish {
 	sf := new(Silverfish)
-	sf.Router = NewRouter(sf)
+	sf.Router = NewRouter(recaptchaPrivateKey, sf)
 	sf.Auth = NewAuth(hashSalt, userInf)
 	sf.novelInf = novelInf
 	sf.comicInf = comicInf
 	sf.urls = urls
 	sf.novelFetchers = map[string]entity.NovelFetcher{
-		"www.77xsw.la": usecase.NewFetcher77xsw("www.77xsw.la"),
-		"tw.hjwzw.com": usecase.NewFetcherHjwzw("tw.hjwzw.com"),
+		"www.77xsw.la":      usecase.NewFetcher77xsw("www.77xsw.la"),
+		"tw.hjwzw.com":      usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"www.biquge.com.cn": usecase.NewFetcherBiquge("www.biquge.com.cn"),
 	}
 	sf.comicFetchers = map[string]entity.ComicFetcher{
-		"www.99comic.co":  usecase.NewFetcher99Comic("www.99comic.co"),
-		"www.nokiacn.net": usecase.NewFetcherNokiacn("www.nokiacn.net"),
+		"www.99comic.co":     usecase.NewFetcher99Comic("www.99comic.co"),
+		"www.nokiacn.net":    usecase.NewFetcherNokiacn("www.nokiacn.net"),
 		"www.cartoonmad.com": usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
 	}
 	return sf

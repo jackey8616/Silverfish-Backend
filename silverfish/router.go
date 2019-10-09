@@ -2,19 +2,41 @@ package silverfish
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	entity "silverfish/silverfish/entity"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Router export
 type Router struct {
-	sf *Silverfish
+	recaptchaPrivateKey *string
+	sf                  *Silverfish
 }
 
 // NewRouter export
-func NewRouter(sf *Silverfish) *Router {
+func NewRouter(recaptchaPrivateKey *string, sf *Silverfish) *Router {
 	rr := new(Router)
+	rr.recaptchaPrivateKey = recaptchaPrivateKey
 	rr.sf = sf
 	return rr
+}
+
+func (rr *Router) verifyRecaptcha(token *string) (bool, error) {
+	url := fmt.Sprintf(
+		"https://www.google.com/recaptcha/api/siteverify?secret=%s&response=%s",
+		*rr.recaptchaPrivateKey,
+		*token)
+	res, err := http.Get(url)
+	if err != nil {
+		return false, err
+	}
+	defer res.Body.Close()
+	result := new(entity.RecaptchaResponse)
+	json.NewDecoder(res.Body).Decode(&result)
+	return result.Success, errors.New(strings.Join(result.ErrorCodes, " , "))
 }
 
 // AuthRegister export
@@ -23,8 +45,23 @@ func (rr *Router) AuthRegister(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		account := r.FormValue("account")
 		password := r.FormValue("password")
+		recaptchaToken := r.FormValue("recaptchaToken")
 		w.Header().Set("Content-Type", "application/json")
-		response := rr.sf.Auth.Register(&account, &password)
+		response := new(entity.APIResponse)
+		if recaptchaToken == "" {
+			response = &entity.APIResponse{
+				Fail: true,
+				Data: map[string]string{"reason": "Missing recaptcha token."},
+			}
+		} else if res, err := rr.verifyRecaptcha(&recaptchaToken); res == false {
+			fmt.Println(err)
+			response = &entity.APIResponse{
+				Fail: true,
+				Data: map[string]string{"reason": "Recaptcha verify failed."},
+			}
+		} else {
+			response = rr.sf.Auth.Register(&account, &password)
+		}
 		js, _ := json.Marshal(response)
 		w.Write(js)
 	default:
@@ -38,8 +75,23 @@ func (rr *Router) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		account := r.FormValue("account")
 		password := r.FormValue("password")
+		recaptchaToken := r.FormValue("recaptchaToken")
 		w.Header().Set("Content-Type", "application/json")
-		response := rr.sf.Auth.Login(&account, &password)
+		response := new(entity.APIResponse)
+		if recaptchaToken == "" {
+			response = &entity.APIResponse{
+				Fail: true,
+				Data: map[string]string{"reason": "Missing recaptcha token."},
+			}
+		} else if res, err := rr.verifyRecaptcha(&recaptchaToken); res == false {
+			fmt.Println(err)
+			response = &entity.APIResponse{
+				Fail: true,
+				Data: map[string]string{"reason": "Recaptcha verify failed."},
+			}
+		} else {
+			response = rr.sf.Auth.Login(&account, &password)
+		}
 		js, _ := json.Marshal(response)
 		w.Write(js)
 	default:
