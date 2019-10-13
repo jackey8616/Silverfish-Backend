@@ -14,6 +14,7 @@ import (
 type Router struct {
 	recaptchaPrivateKey *string
 	sf                  *Silverfish
+	sessionUsecase      *SessionUsecase
 }
 
 // NewRouter export
@@ -21,6 +22,7 @@ func NewRouter(recaptchaPrivateKey *string, sf *Silverfish) *Router {
 	rr := new(Router)
 	rr.recaptchaPrivateKey = recaptchaPrivateKey
 	rr.sf = sf
+	rr.sessionUsecase = NewSessionUsecase()
 	return rr
 }
 
@@ -39,6 +41,25 @@ func (rr *Router) verifyRecaptcha(token *string) (bool, error) {
 	return result.Success, errors.New(strings.Join(result.ErrorCodes, " , "))
 }
 
+// AuthStatus export
+func (rr *Router) AuthStatus(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		sessionToken := r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+
+		result := rr.sessionUsecase.IsTokenValid(&sessionToken)
+		response := &entity.APIResponse{
+			Success: true,
+			Data:    result,
+		}
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
 // AuthRegister export
 func (rr *Router) AuthRegister(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -47,20 +68,19 @@ func (rr *Router) AuthRegister(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 		recaptchaToken := r.FormValue("recaptchaToken")
 		w.Header().Set("Content-Type", "application/json")
+
 		response := new(entity.APIResponse)
 		if recaptchaToken == "" {
-			response = &entity.APIResponse{
-				Fail: true,
-				Data: map[string]string{"reason": "Missing recaptcha token."},
-			}
+			response = entity.NewAPIResponse(nil, errors.New("Missing recaptcha token"))
 		} else if res, err := rr.verifyRecaptcha(&recaptchaToken); res == false {
 			fmt.Println(err)
-			response = &entity.APIResponse{
-				Fail: true,
-				Data: map[string]string{"reason": "Recaptcha verify failed."},
-			}
+			response = entity.NewAPIResponse(nil, errors.New("Recaptcha verify failed"))
 		} else {
-			response = rr.sf.Auth.Register(&account, &password)
+			user, err := rr.sf.Auth.Register(&account, &password)
+			response = entity.NewAPIResponse(map[string]interface{}{
+				"session": *rr.sessionUsecase.InsertSession(&account, false),
+				"user":    user,
+			}, err)
 		}
 		js, _ := json.Marshal(response)
 		w.Write(js)
@@ -73,24 +93,67 @@ func (rr *Router) AuthRegister(w http.ResponseWriter, r *http.Request) {
 func (rr *Router) AuthLogin(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
+		keepLogin := r.FormValue("keepLogin")
 		account := r.FormValue("account")
 		password := r.FormValue("password")
 		recaptchaToken := r.FormValue("recaptchaToken")
 		w.Header().Set("Content-Type", "application/json")
+
 		response := new(entity.APIResponse)
 		if recaptchaToken == "" {
-			response = &entity.APIResponse{
-				Fail: true,
-				Data: map[string]string{"reason": "Missing recaptcha token."},
-			}
+			response = entity.NewAPIResponse(nil, errors.New("Missing recaptcha token"))
 		} else if res, err := rr.verifyRecaptcha(&recaptchaToken); res == false {
 			fmt.Println(err)
-			response = &entity.APIResponse{
-				Fail: true,
-				Data: map[string]string{"reason": "Recaptcha verify failed."},
-			}
+			response = entity.NewAPIResponse(nil, errors.New("Recaptcha verify failed"))
 		} else {
-			response = rr.sf.Auth.Login(&account, &password)
+			user, err := rr.sf.Auth.Login(&account, &password)
+			if err != nil {
+				response = entity.NewAPIResponse(nil, err)
+			} else {
+				response = entity.NewAPIResponse(
+					map[string]interface{}{
+						"session": *rr.sessionUsecase.InsertSession(&account, keepLogin == "true"),
+						"user":    user,
+					}, nil)
+			}
+		}
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// AuthLogout export
+func (rr *Router) AuthLogout(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		sessionToken := r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+
+		rr.sessionUsecase.KillSession(&sessionToken)
+		response := entity.NewAPIResponse(nil, nil)
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// UserBookmark export
+func (rr *Router) UserBookmark(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		sessionToken := r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+
+		session, err := rr.sessionUsecase.GetSession(&sessionToken)
+		response := new(entity.APIResponse)
+		if err != nil {
+			response = entity.NewAPIResponse(nil, err)
+		} else {
+			result, err := rr.sf.Auth.GetUserBookmark(session.GetAccount())
+			response = entity.NewAPIResponse(result, err)
 		}
 		js, _ := json.Marshal(response)
 		w.Write(js)
@@ -104,7 +167,9 @@ func (rr *Router) V1Novels(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
-		response := rr.sf.getNovels()
+
+		result, err := rr.sf.getNovels()
+		response := entity.NewAPIResponse(result, err)
 		js, _ := json.Marshal(response)
 		w.Write(js)
 	default:
@@ -119,7 +184,9 @@ func (rr *Router) V1Novel(w http.ResponseWriter, r *http.Request) {
 		novelID := r.URL.Query().Get("novel_id")
 		if novelID != "" {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getNovelByID(&novelID)
+
+			result, err := rr.sf.getNovelByID(&novelID)
+			response := entity.NewAPIResponse(result, err)
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		} else {
@@ -129,7 +196,9 @@ func (rr *Router) V1Novel(w http.ResponseWriter, r *http.Request) {
 		novelURL := r.FormValue("novel_url")
 		if novelURL != "" {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getNovelByURL(&novelURL)
+
+			result, err := rr.sf.getNovelByURL(&novelURL)
+			response := entity.NewAPIResponse(result, err)
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		} else {
@@ -144,16 +213,20 @@ func (rr *Router) V1Novel(w http.ResponseWriter, r *http.Request) {
 func (rr *Router) V1NovelChapter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		account := r.Header.Get("Reader")
+		sessionToken := r.Header.Get("Authorization")
+		session, _ := rr.sessionUsecase.GetSession(&sessionToken)
+
 		novelID := r.URL.Query().Get("novel_id")
 		chapterIndex := r.URL.Query().Get("chapter_index")
 		if novelID == "" || chapterIndex == "" {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getNovelChapter(&novelID, &chapterIndex)
-			if account != "" && account != "guest" {
-				go rr.sf.Auth.UpdateBookmark("Novel", &novelID, &account, &chapterIndex)
+
+			result, err := rr.sf.getNovelChapter(&novelID, &chapterIndex)
+			response := entity.NewAPIResponse(result, err)
+			if err == nil && session != nil {
+				go rr.sf.Auth.UpdateBookmark("Novel", &novelID, session.GetAccount(), &chapterIndex)
 			}
 			js, _ := json.Marshal(response)
 			w.Write(js)
@@ -168,7 +241,9 @@ func (rr *Router) V1Comics(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
-		response := rr.sf.getComics()
+
+		result, err := rr.sf.getComics()
+		response := entity.NewAPIResponse(result, err)
 		js, _ := json.Marshal(response)
 		w.Write(js)
 	default:
@@ -183,7 +258,9 @@ func (rr *Router) V1Comic(w http.ResponseWriter, r *http.Request) {
 		comicID := r.URL.Query().Get("comic_id")
 		if comicID != "" {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getComicByID(&comicID)
+
+			result, err := rr.sf.getComicByID(&comicID)
+			response := entity.NewAPIResponse(result, err)
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		} else {
@@ -193,7 +270,9 @@ func (rr *Router) V1Comic(w http.ResponseWriter, r *http.Request) {
 		comicURL := r.FormValue("comic_url")
 		if comicURL != "" {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getComicByURL(&comicURL)
+
+			result, err := rr.sf.getComicByURL(&comicURL)
+			response := entity.NewAPIResponse(result, err)
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		} else {
@@ -208,16 +287,19 @@ func (rr *Router) V1Comic(w http.ResponseWriter, r *http.Request) {
 func (rr *Router) V1ComicChapter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		account := r.Header.Get("Reader")
+		sessionToken := r.Header.Get("Authorization")
+		session, _ := rr.sessionUsecase.GetSession(&sessionToken)
+
 		comicID := r.URL.Query().Get("comic_id")
 		chapterIndex := r.URL.Query().Get("chapter_index")
 		if comicID == "" || chapterIndex == "" {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			response := rr.sf.getComicChapter(&comicID, &chapterIndex)
-			if account != "" && account != "guest" {
-				go rr.sf.Auth.UpdateBookmark("Comic", &comicID, &account, &chapterIndex)
+			result, err := rr.sf.getComicChapter(&comicID, &chapterIndex)
+			response := entity.NewAPIResponse(result, err)
+			if err == nil && session != nil {
+				go rr.sf.Auth.UpdateBookmark("Comic", &comicID, session.GetAccount(), &chapterIndex)
 			}
 			js, _ := json.Marshal(response)
 			w.Write(js)

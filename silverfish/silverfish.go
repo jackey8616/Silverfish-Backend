@@ -1,6 +1,7 @@
 package silverfish
 
 import (
+	"errors"
 	"log"
 	"strconv"
 	"time"
@@ -44,29 +45,17 @@ func New(hashSalt, recaptchaPrivateKey *string, userInf, novelInf, comicInf *ent
 }
 
 // getNovels
-func (sf *Silverfish) getNovels() *entity.APIResponse {
+func (sf *Silverfish) getNovels() (*[]entity.NovelInfo, error) {
 	result, err := sf.novelInf.FindSelectAll(nil, bson.M{
 		"novelID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
-	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
-	}
-	return &entity.APIResponse{
-		Success: true,
-		Data:    result.(*[]entity.NovelInfo),
-	}
+	return result.(*[]entity.NovelInfo), err
 }
 
 // getNovelByID
-func (sf *Silverfish) getNovelByID(novelID *string) *entity.APIResponse {
+func (sf *Silverfish) getNovelByID(novelID *string) (*entity.Novel, error) {
 	result, err := sf.novelInf.FindOne(bson.M{"novelID": *novelID}, &entity.Novel{})
 	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
+		return nil, err
 	}
 
 	novel := result.(*entity.Novel)
@@ -77,96 +66,58 @@ func (sf *Silverfish) getNovelByID(novelID *string) *entity.APIResponse {
 		log.Printf("Updated novel <novel_id: %s, title: %s> since %s", novel.NovelID, novel.Title, lastCrawlTime)
 	}
 
-	return &entity.APIResponse{
-		Success: true,
-		Data:    novel,
-	}
+	return novel, nil
 }
 
 // getNovelByURL
-func (sf *Silverfish) getNovelByURL(novelURL *string) *entity.APIResponse {
+func (sf *Silverfish) getNovelByURL(novelURL *string) (*entity.Novel, error) {
 	result, err := sf.novelInf.FindOne(bson.M{"novelURL": *novelURL}, &entity.Novel{})
 	if err != nil {
 		for _, v := range sf.novelFetchers {
 			if v.Match(novelURL) {
 				record := v.FetchNovelInfo(novelURL)
 				sf.novelInf.Upsert(bson.M{"novelID": record.NovelID}, record)
-				return &entity.APIResponse{
-					Success: true,
-					Data:    record,
-				}
+				return record, nil
 			}
 		}
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": "No suit fetcher"},
-		}
+		return nil, errors.New("No suit fetcher")
+
 	}
 
-	return &entity.APIResponse{
-		Success: true,
-		Data:    result.(*entity.Novel),
-	}
+	return result.(*entity.Novel), nil
 }
 
 // getNovelChapter
-func (sf *Silverfish) getNovelChapter(novelID, chapterIndex *string) *entity.APIResponse {
+func (sf *Silverfish) getNovelChapter(novelID, chapterIndex *string) (*string, error) {
 	index, err := strconv.Atoi(*chapterIndex)
 	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": "Invalid chapter index"},
-		}
+		return nil, errors.New("Invalid chapter index")
 	}
 	query, err := sf.novelInf.FindOne(bson.M{"novelID": novelID}, &entity.Novel{})
 	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
+		return nil, err
 	}
 	record := query.(*entity.Novel)
 	if len((*record).Chapters) < index {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": "Wrong Index"},
-		}
+		return nil, errors.New("Wrong Index")
 	} else if val, ok := sf.novelFetchers[(*record).DNS]; ok {
-		return &entity.APIResponse{
-			Success: true,
-			Data:    val.FetchNovelChapter(record, index),
-		}
+		return val.FetchNovelChapter(record, index), nil
 	}
-	return &entity.APIResponse{
-		Success: true,
-		Data:    map[string]string{"reason": "No such fetcher'"},
-	}
+	return nil, errors.New("No such fetcher'")
 }
 
 // getComics
-func (sf *Silverfish) getComics() *entity.APIResponse {
+func (sf *Silverfish) getComics() (*[]entity.ComicInfo, error) {
 	result, err := sf.comicInf.FindSelectAll(nil, bson.M{
 		"comicID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
-	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
-	}
-	return &entity.APIResponse{
-		Success: true,
-		Data:    result.(*[]entity.ComicInfo),
-	}
+	return result.(*[]entity.ComicInfo), err
 }
 
 // getComicByID
-func (sf *Silverfish) getComicByID(comicID *string) *entity.APIResponse {
+func (sf *Silverfish) getComicByID(comicID *string) (*entity.Comic, error) {
 	result, err := sf.comicInf.FindOne(bson.M{"comicID": *comicID}, &entity.Comic{})
 	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
+		return nil, err
 	}
 
 	comic := result.(*entity.Comic)
@@ -177,73 +128,47 @@ func (sf *Silverfish) getComicByID(comicID *string) *entity.APIResponse {
 		log.Printf("Updated comic <comic_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
 	}
 
-	return &entity.APIResponse{
-		Success: true,
-		Data:    result.(*entity.Comic),
-	}
+	return result.(*entity.Comic), nil
 }
 
 // getComicByURL
-func (sf *Silverfish) getComicByURL(comicURL *string) *entity.APIResponse {
+func (sf *Silverfish) getComicByURL(comicURL *string) (*entity.Comic, error) {
 	result, err := sf.comicInf.FindOne(bson.M{"comicURL": *comicURL}, &entity.Comic{})
 	if err != nil {
 		for _, v := range sf.comicFetchers {
 			if v.Match(comicURL) {
 				record := v.FetchComicInfo(comicURL)
 				sf.comicInf.Upsert(bson.M{"comicID": record.ComicID}, record)
-				return &entity.APIResponse{
-					Success: true,
-					Data:    record,
-				}
+				return record, nil
 			}
 		}
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": "No suit fetcher"},
-		}
+		return nil, errors.New("No suit fetcher")
 	}
 
-	return &entity.APIResponse{
-		Success: true,
-		Data:    result.(*entity.Comic),
-	}
+	return result.(*entity.Comic), nil
 }
 
 // getComicChapter
-func (sf *Silverfish) getComicChapter(comicID, chapterIndex *string) *entity.APIResponse {
+func (sf *Silverfish) getComicChapter(comicID, chapterIndex *string) ([]string, error) {
 	index, err := strconv.Atoi(*chapterIndex)
 	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": "Invalid chapter index"},
-		}
+		return nil, errors.New("Invalid chapter index")
 	}
 	query, err := sf.comicInf.FindOne(bson.M{"comicID": comicID}, &entity.Comic{})
 	if err != nil {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
+		return nil, err
 	}
 	record := query.(*entity.Comic)
 	if len((*record).Chapters) < index {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": "Wrong Index"},
-		}
+		return nil, errors.New("Wrong Index")
 	} else if val, ok := sf.comicFetchers[(*record).DNS]; ok {
 		if len(record.Chapters[index].ImageURL) == 0 {
 			record.Chapters[index].ImageURL = val.FetchComicChapter(record, index)
 			sf.comicInf.Update(bson.M{"comicID": record.ComicID}, record)
 			log.Printf("Detect <comic:%s> chapter <index: %s/ title: %s> not crawl yet. Crawled.", record.Title, *chapterIndex, record.Chapters[index].Title)
 		}
-		return &entity.APIResponse{
-			Success: true,
-			Data:    record.Chapters[index].ImageURL,
-		}
+		return record.Chapters[index].ImageURL, nil
 	}
-	return &entity.APIResponse{
-		Success: true,
-		Data:    map[string]string{"reason": "No such fetcher'"},
-	}
+
+	return nil, errors.New("No such fetcher'")
 }

@@ -58,8 +58,11 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", helloWorld)
+	mux.HandleFunc("/auth/status", silverfish.Router.AuthStatus)
 	mux.HandleFunc("/auth/register", silverfish.Router.AuthRegister)
 	mux.HandleFunc("/auth/login", silverfish.Router.AuthLogin)
+	mux.HandleFunc("/auth/logout", silverfish.Router.AuthLogout)
+	mux.HandleFunc("/user/bookmark", silverfish.Router.UserBookmark)
 	mux.HandleFunc("/api/v1/novels", silverfish.Router.V1Novels)
 	mux.HandleFunc("/api/v1/novel", silverfish.Router.V1Novel)
 	/* TODO: route should be /api/v1/novel/chapter
@@ -72,7 +75,7 @@ func main() {
 
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   allowOrigins,
-		AllowedHeaders:   []string{"Reader"},
+		AllowedHeaders:   []string{"Authorization"},
 		AllowCredentials: allowCredentials,
 		Debug:            debug,
 	}).Handler(mux)

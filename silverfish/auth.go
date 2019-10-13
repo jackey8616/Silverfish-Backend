@@ -1,10 +1,8 @@
 package silverfish
 
 import (
-	"crypto/sha512"
-	"encoding/hex"
+	"errors"
 	"strconv"
-	"strings"
 	"time"
 
 	entity "silverfish/silverfish/entity"
@@ -26,17 +24,9 @@ func NewAuth(hashSalt *string, userInf *entity.MongoInf) *Auth {
 	return a
 }
 
-func (a *Auth) sha512Str(src *string) *string {
-	salted := strings.Join([]string{*src, *a.hashSalt}, "")
-	h := sha512.New()
-	h.Write([]byte(salted))
-	s := hex.EncodeToString(h.Sum(nil))
-	return &s
-}
-
 // Register export
-func (a *Auth) Register(account, password *string) *entity.APIResponse {
-	hashedPassword := a.sha512Str(password)
+func (a *Auth) Register(account, password *string) (*entity.User, error) {
+	hashedPassword := SHA512Str(password, a.hashSalt)
 	_, err := a.userInf.FindOne(bson.M{"account": *account}, &entity.User{})
 	if err != nil {
 		if err.Error() == "not found" {
@@ -49,62 +39,50 @@ func (a *Auth) Register(account, password *string) *entity.APIResponse {
 				Bookmark:          &entity.Bookmark{},
 			}
 			a.userInf.Upsert(bson.M{"account": *account}, user)
-			return &entity.APIResponse{
-				Success: true,
-				Data: &entity.User{
-					Account:           user.Account,
-					RegisterDatetime:  user.RegisterDatetime,
-					LastLoginDatetime: user.LastLoginDatetime,
-					Bookmark:          user.Bookmark,
-				},
-			}
+			return &entity.User{
+				Account:           user.Account,
+				RegisterDatetime:  user.RegisterDatetime,
+				LastLoginDatetime: user.LastLoginDatetime,
+				Bookmark:          user.Bookmark,
+			}, nil
 		}
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
+		return nil, err
 	}
-	return &entity.APIResponse{
-		Fail: true,
-		Data: map[string]string{"reason": "account exists."},
-	}
+	return nil, errors.New("account exists")
 }
 
 // Login export
-func (a *Auth) Login(account, password *string) *entity.APIResponse {
-	hashedPassword := a.sha512Str(password)
+func (a *Auth) Login(account, password *string) (*entity.User, error) {
+	hashedPassword := SHA512Str(password, a.hashSalt)
 	result, err := a.userInf.FindOne(bson.M{"account": *account}, &entity.User{})
 	if err != nil {
 		if err.Error() == "not found" {
-			return &entity.APIResponse{
-				Fail: true,
-				Data: map[string]string{"reason": "Account not exists."},
-			}
+			return nil, errors.New("Account not exists")
 		}
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": err.Error()},
-		}
+		return nil, err
 	}
 	user := result.(*entity.User)
 	if user.Password != *hashedPassword {
-		return &entity.APIResponse{
-			Fail: true,
-			Data: map[string]string{"reason": "Account or Password wrong."},
-		}
+		return nil, errors.New("Account or Password wrong")
 	}
-	apiResponse := &entity.APIResponse{
-		Success: true,
-		Data: &entity.User{
-			Account:           user.Account,
-			RegisterDatetime:  user.RegisterDatetime,
-			LastLoginDatetime: user.LastLoginDatetime,
-			Bookmark:          user.Bookmark,
-		},
-	}
+
 	user.LastLoginDatetime = time.Now()
 	a.userInf.Upsert(bson.M{"account": account}, user)
-	return apiResponse
+	return &entity.User{
+		Account:           user.Account,
+		RegisterDatetime:  user.RegisterDatetime,
+		LastLoginDatetime: user.LastLoginDatetime,
+		Bookmark:          user.Bookmark,
+	}, nil
+}
+
+// GetUserBookmark export
+func (a *Auth) GetUserBookmark(account *string) (*entity.Bookmark, error) {
+	result, err := a.userInf.FindOne(bson.M{"account": account}, &entity.User{})
+	if err != nil {
+		return nil, errors.New("Account not exists")
+	}
+	return result.(*entity.User).Bookmark, nil
 }
 
 // UpdateBookmark export
