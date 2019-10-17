@@ -33,6 +33,7 @@ func New(hashSalt, recaptchaPrivateKey *string, userInf, novelInf, comicInf *ent
 	sf.urls = urls
 	sf.novelFetchers = map[string]entity.NovelFetcher{
 		"www.77xsw.la":      usecase.NewFetcher77xsw("www.77xsw.la"),
+		"tw.aixdzs.com":     usecase.NewFetcherAixdzs("tw.aixdzs.com"),
 		"tw.hjwzw.com":      usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"www.biquge.com.cn": usecase.NewFetcherBiquge("www.biquge.com.cn"),
 	}

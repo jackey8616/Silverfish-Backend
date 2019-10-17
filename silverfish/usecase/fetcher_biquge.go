@@ -41,7 +41,7 @@ func (fb *FetcherBiquge) IsSplit(doc *goquery.Document) bool {
 
 // Filter export
 func (fb *FetcherBiquge) Filter(raw *string) *string {
-	return nil
+	return raw
 }
 
 // FetchNovelInfo export
@@ -117,5 +117,5 @@ func (fb *FetcherBiquge) FetchNovelChapter(novel *entity.Novel, index int) *stri
 	novelContent, _ := doc.Find("div[id='content']").Html()
 	output := fb.decoder.ConvertString(novelContent)
 
-	return &output
+	return fb.Filter(&output)
 }
