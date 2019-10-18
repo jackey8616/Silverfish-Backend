@@ -38,7 +38,7 @@ func (fc *FetcherCartoonmad) FetchComicInfo(url *string) *entity.Comic {
 		temp := strings.Replace(*url, "/comic/", "/m/comic/", 1)
 		url = &temp
 	}
-	doc := fc.FetchDocWithEncoding(url, "Big5")
+	doc, _ := fc.FetchDocWithEncoding(url, "Big5")
 	id := fc.GenerateID(url)
 
 	anchor := doc.Find("table:nth-of-type(2) > tbody > tr:nth-of-type(2) > td")
@@ -86,7 +86,7 @@ func (fc *FetcherCartoonmad) FetchComicInfo(url *string) *entity.Comic {
 
 // UpdateComicInfo export
 func (fc *FetcherCartoonmad) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
-	doc := fc.FetchDocWithEncoding(&comic.URL, "Big5")
+	doc, _ := fc.FetchDocWithEncoding(&comic.URL, "Big5")
 	anchor := doc.Find("table:nth-of-type(2) > tbody > tr:nth-of-type(2) > td")
 
 	chapters := []entity.ComicChapter{}

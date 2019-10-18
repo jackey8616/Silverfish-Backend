@@ -11,7 +11,9 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lytics/base62 v0.0.0-20180808010106-0ee4de5a5d6d
 	github.com/pkg/errors v0.8.1
+	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/rs/cors v1.6.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
+	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
