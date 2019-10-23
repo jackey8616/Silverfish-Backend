@@ -5,6 +5,7 @@ services:
     image: mongo
     volumes:
       - "../mongo-data:/data/db"
+    restart: unless-stopped
 
   mongo-express:
     image: mongo-express
