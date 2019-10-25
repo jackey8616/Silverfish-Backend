@@ -12,11 +12,11 @@ type Session struct {
 }
 
 // NewSession export
-func NewSession(keepLogin bool, token, account *string) *Session {
+func NewSession(keepLogin bool, token *string, user *User) *Session {
 	s := new(Session)
 	s.keepLogin = keepLogin
 	s.token = token
-	s.account = account
+	s.account = &(*user).Account
 	s.loginTS = time.Now()
 	if keepLogin == true {
 		s.expireTS = time.Now().Add(time.Hour * 24 * 7)

@@ -25,13 +25,14 @@ func NewAuth(hashSalt *string, userInf *entity.MongoInf) *Auth {
 }
 
 // Register export
-func (a *Auth) Register(account, password *string) (*entity.User, error) {
+func (a *Auth) Register(isAdmin bool, account, password *string) (*entity.User, error) {
 	hashedPassword := SHA512Str(password, a.hashSalt)
 	_, err := a.userInf.FindOne(bson.M{"account": *account}, &entity.User{})
 	if err != nil {
 		if err.Error() == "not found" {
 			registerTime := time.Now()
 			user := &entity.User{
+				IsAdmin:           isAdmin,
 				Account:           *account,
 				Password:          *hashedPassword,
 				RegisterDatetime:  registerTime,
@@ -40,6 +41,7 @@ func (a *Auth) Register(account, password *string) (*entity.User, error) {
 			}
 			a.userInf.Upsert(bson.M{"account": *account}, user)
 			return &entity.User{
+				IsAdmin:           user.IsAdmin,
 				Account:           user.Account,
 				RegisterDatetime:  user.RegisterDatetime,
 				LastLoginDatetime: user.LastLoginDatetime,
@@ -69,11 +71,21 @@ func (a *Auth) Login(account, password *string) (*entity.User, error) {
 	user.LastLoginDatetime = time.Now()
 	a.userInf.Upsert(bson.M{"account": account}, user)
 	return &entity.User{
+		IsAdmin:           user.IsAdmin,
 		Account:           user.Account,
 		RegisterDatetime:  user.RegisterDatetime,
 		LastLoginDatetime: user.LastLoginDatetime,
 		Bookmark:          user.Bookmark,
 	}, nil
+}
+
+// IsAdmin export
+func (a *Auth) IsAdmin(account *string) (bool, error) {
+	result, err := a.userInf.FindOne(bson.M{"account": account}, &entity.User{})
+	if err != nil {
+		return false, errors.New("Account not exists")
+	}
+	return result.(*entity.User).IsAdmin, nil
 }
 
 // GetUserBookmark export

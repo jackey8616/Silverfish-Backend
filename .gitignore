@@ -1,2 +1,4 @@
 .vscode/
 mongo-data/
+
+dev.config.json

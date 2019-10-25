@@ -14,7 +14,6 @@ import (
 
 // Silverfish export
 type Silverfish struct {
-	Router        *Router
 	Auth          *Auth
 	novelInf      *entity.MongoInf
 	comicInf      *entity.MongoInf
@@ -24,13 +23,11 @@ type Silverfish struct {
 }
 
 // New export
-func New(hashSalt, recaptchaPrivateKey *string, userInf, novelInf, comicInf *entity.MongoInf, urls []string) *Silverfish {
+func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf) *Silverfish {
 	sf := new(Silverfish)
-	sf.Router = NewRouter(recaptchaPrivateKey, sf)
 	sf.Auth = NewAuth(hashSalt, userInf)
 	sf.novelInf = novelInf
 	sf.comicInf = comicInf
-	sf.urls = urls
 	sf.novelFetchers = map[string]entity.NovelFetcher{
 		"www.77xsw.la":      usecase.NewFetcher77xsw("www.77xsw.la"),
 		"tw.hjwzw.com":      usecase.NewFetcherHjwzw("tw.hjwzw.com"),
@@ -46,15 +43,30 @@ func New(hashSalt, recaptchaPrivateKey *string, userInf, novelInf, comicInf *ent
 	return sf
 }
 
-// getNovels
-func (sf *Silverfish) getNovels() (*[]entity.NovelInfo, error) {
+// GetLists export
+func (sf *Silverfish) GetLists() map[string][]string {
+	lists := map[string][]string{
+		"novels": []string{},
+		"comics": []string{},
+	}
+	for domain := range sf.novelFetchers {
+		lists["novels"] = append(lists["novels"], domain)
+	}
+	for domain := range sf.comicFetchers {
+		lists["comics"] = append(lists["comics"], domain)
+	}
+	return lists
+}
+
+// GetNovels export
+func (sf *Silverfish) GetNovels() (*[]entity.NovelInfo, error) {
 	result, err := sf.novelInf.FindSelectAll(nil, bson.M{
 		"novelID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
 	return result.(*[]entity.NovelInfo), err
 }
 
-// getNovelByID
-func (sf *Silverfish) getNovelByID(novelID *string) (*entity.Novel, error) {
+// GetNovelByID export
+func (sf *Silverfish) GetNovelByID(novelID *string) (*entity.Novel, error) {
 	result, err := sf.novelInf.FindOne(bson.M{"novelID": *novelID}, &entity.Novel{})
 	if err != nil {
 		return nil, err
@@ -71,8 +83,8 @@ func (sf *Silverfish) getNovelByID(novelID *string) (*entity.Novel, error) {
 	return novel, nil
 }
 
-// getNovelByURL
-func (sf *Silverfish) getNovelByURL(novelURL *string) (*entity.Novel, error) {
+// GetNovelByURL export
+func (sf *Silverfish) GetNovelByURL(novelURL *string) (*entity.Novel, error) {
 	result, err := sf.novelInf.FindOne(bson.M{"novelURL": *novelURL}, &entity.Novel{})
 	if err != nil {
 		for _, v := range sf.novelFetchers {
@@ -89,8 +101,8 @@ func (sf *Silverfish) getNovelByURL(novelURL *string) (*entity.Novel, error) {
 	return result.(*entity.Novel), nil
 }
 
-// getNovelChapter
-func (sf *Silverfish) getNovelChapter(novelID, chapterIndex *string) (*string, error) {
+// GetNovelChapter export
+func (sf *Silverfish) GetNovelChapter(novelID, chapterIndex *string) (*string, error) {
 	index, err := strconv.Atoi(*chapterIndex)
 	if err != nil {
 		return nil, errors.New("Invalid chapter index")
@@ -108,15 +120,15 @@ func (sf *Silverfish) getNovelChapter(novelID, chapterIndex *string) (*string, e
 	return nil, errors.New("No such fetcher'")
 }
 
-// getComics
-func (sf *Silverfish) getComics() (*[]entity.ComicInfo, error) {
+// GetComics export
+func (sf *Silverfish) GetComics() (*[]entity.ComicInfo, error) {
 	result, err := sf.comicInf.FindSelectAll(nil, bson.M{
 		"comicID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
 	return result.(*[]entity.ComicInfo), err
 }
 
-// getComicByID
-func (sf *Silverfish) getComicByID(comicID *string) (*entity.Comic, error) {
+// GetComicByID export
+func (sf *Silverfish) GetComicByID(comicID *string) (*entity.Comic, error) {
 	result, err := sf.comicInf.FindOne(bson.M{"comicID": *comicID}, &entity.Comic{})
 	if err != nil {
 		return nil, err
@@ -133,8 +145,8 @@ func (sf *Silverfish) getComicByID(comicID *string) (*entity.Comic, error) {
 	return result.(*entity.Comic), nil
 }
 
-// getComicByURL
-func (sf *Silverfish) getComicByURL(comicURL *string) (*entity.Comic, error) {
+// GetComicByURL export
+func (sf *Silverfish) GetComicByURL(comicURL *string) (*entity.Comic, error) {
 	result, err := sf.comicInf.FindOne(bson.M{"comicURL": *comicURL}, &entity.Comic{})
 	if err != nil {
 		for _, v := range sf.comicFetchers {
@@ -150,8 +162,8 @@ func (sf *Silverfish) getComicByURL(comicURL *string) (*entity.Comic, error) {
 	return result.(*entity.Comic), nil
 }
 
-// getComicChapter
-func (sf *Silverfish) getComicChapter(comicID, chapterIndex *string) ([]string, error) {
+// GetComicChapter export
+func (sf *Silverfish) GetComicChapter(comicID, chapterIndex *string) ([]string, error) {
 	index, err := strconv.Atoi(*chapterIndex)
 	if err != nil {
 		return nil, errors.New("Invalid chapter index")

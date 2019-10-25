@@ -43,14 +43,14 @@ func (su *SessionUsecase) GetSession(sessionToken *string) (*entity.Session, err
 }
 
 // InsertSession export
-func (su *SessionUsecase) InsertSession(account *string, keepLogin bool) *string {
+func (su *SessionUsecase) InsertSession(user *entity.User, keepLogin bool) *string {
 	su.ExpireLoop()
-	payload := *account + time.Now().String()
+	payload := (*user).Account + time.Now().String()
 	sessionToken := SHA512Str(&payload, su.sessionSalt)
 	if _, ok := su.sessions[*sessionToken]; ok {
-		return su.InsertSession(account, keepLogin)
+		return su.InsertSession(user, keepLogin)
 	}
-	su.sessions[*sessionToken] = entity.NewSession(keepLogin, sessionToken, account)
+	su.sessions[*sessionToken] = entity.NewSession(keepLogin, sessionToken, user)
 	return sessionToken
 }
 
