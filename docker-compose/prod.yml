@@ -11,6 +11,8 @@ services:
     build:
       context: ../
       dockerfile: Dockerfile
+    volumes:
+    - "../config.json:/config.json:ro"
     ports:
       - "2087:8080"
     restart: unless-stopped

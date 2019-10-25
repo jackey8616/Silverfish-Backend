@@ -61,7 +61,6 @@ func main() {
 	mux.HandleFunc("/api/v1/comic/chapter", router.V1ComicChapter)
 	log.Printf("Http Route inited.")
 
-	log.Println(config.AllowOrigin)
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   config.AllowOrigin,
 		AllowedHeaders:   []string{"Authorization"},

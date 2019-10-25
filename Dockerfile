@@ -4,9 +4,9 @@ MAINTAINER clooooode<jackey8616@gmail.com>
 
 EXPOSE 8080
 
-WORKDIR /app
+WORKDIR /
 
-COPY . /app
+COPY . /
 
 RUN go mod download
 
