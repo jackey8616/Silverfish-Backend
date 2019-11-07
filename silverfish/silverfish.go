@@ -39,6 +39,7 @@ func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf) *Silver
 		"www.nokiacn.net":    usecase.NewFetcherNokiacn("www.nokiacn.net"),
 		"www.cartoonmad.com": usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
 		"comicbus.com":       usecase.NewFetcherComicbus("comicbus.com"),
+		"www.manhuaniu.com":  usecase.NewFetcherManhuaniu("www.manhuaniu.com"),
 	}
 	return sf
 }
