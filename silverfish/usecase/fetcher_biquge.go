@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -45,8 +46,11 @@ func (fb *FetcherBiquge) Filter(raw *string) *string {
 }
 
 // FetchNovelInfo export
-func (fb *FetcherBiquge) FetchNovelInfo(url *string) *entity.Novel {
-	doc := fb.FetchDoc(url)
+func (fb *FetcherBiquge) FetchNovelInfo(url *string) (*entity.Novel, error) {
+	doc, docErr := fb.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := fb.GenerateID(url)
 	title := doc.Find("div[id='info'] > h1").Text()
@@ -55,8 +59,7 @@ func (fb *FetcherBiquge) FetchNovelInfo(url *string) *entity.Novel {
 	description := doc.Find("div[id='intro']").Text()
 	coverURL, ok := doc.Find("div[id='fmimg'] > img").Attr("src")
 	if title == "" || author == "" || description == "" || !ok {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chapters := []entity.NovelChapter{}
@@ -83,12 +86,15 @@ func (fb *FetcherBiquge) FetchNovelInfo(url *string) *entity.Novel {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateNovelInfo export
-func (fb *FetcherBiquge) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
-	doc := fb.FetchDoc(&novel.URL)
+func (fb *FetcherBiquge) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error) {
+	doc, docErr := fb.FetchDoc(&novel.URL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.NovelChapter{}
 	doc.Find("div[id='list'] > dl > dd > a").Each(func(i int, s *goquery.Selection) {
@@ -106,16 +112,19 @@ func (fb *FetcherBiquge) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
 
 	novel.Chapters = chapters
 	novel.LastCrawlTime = time.Now()
-	return novel
+	return novel, nil
 }
 
 // FetchNovelChapter export
-func (fb *FetcherBiquge) FetchNovelChapter(novel *entity.Novel, index int) *string {
+func (fb *FetcherBiquge) FetchNovelChapter(novel *entity.Novel, index int) (*string, error) {
 	url := fb.GetChapterURL(novel, index)
-	doc := fb.FetchDoc(url)
+	doc, docErr := fb.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	novelContent, _ := doc.Find("div[id='content']").Html()
 	output := fb.decoder.ConvertString(novelContent)
 
-	return fb.Filter(&output)
+	return fb.Filter(&output), nil
 }

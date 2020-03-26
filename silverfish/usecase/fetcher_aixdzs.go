@@ -47,8 +47,11 @@ func (fa *FetcherAixdzs) Filter(raw *string) *string {
 }
 
 // FetchNovelInfo export
-func (fa *FetcherAixdzs) FetchNovelInfo(url *string) *entity.Novel {
-	doc := fa.FetchDoc(url)
+func (fa *FetcherAixdzs) FetchNovelInfo(url *string) (*entity.Novel, error) {
+	doc, docErr := fa.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := fa.GenerateID(url)
 	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
@@ -56,12 +59,14 @@ func (fa *FetcherAixdzs) FetchNovelInfo(url *string) *entity.Novel {
 	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
 	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
 	if !ok0 || !ok1 || !ok2 || !ok3 {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chaptersURL := strings.Replace(*url, "/d/", "/read/", 1)
-	doc = fa.FetchDoc(&chaptersURL)
+	doc, docErr = fa.FetchDoc(&chaptersURL)
+	if docErr != nil {
+		return nil, docErr
+	}
 	chapters := []entity.NovelChapter{}
 	doc.Find("div.catalog > ul > li.chapter > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Text()
@@ -86,12 +91,15 @@ func (fa *FetcherAixdzs) FetchNovelInfo(url *string) *entity.Novel {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateNovelInfo export
-func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
-	doc := fa.FetchDoc(&novel.URL)
+func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error) {
+	doc, docErr := fa.FetchDoc(&novel.URL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.NovelChapter{}
 	doc.Find("div.catalog > ul > li.chapter > a").Each(func(i int, s *goquery.Selection) {
@@ -109,18 +117,21 @@ func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
 
 	novel.Chapters = chapters
 	novel.LastCrawlTime = time.Now()
-	return novel
+	return novel, nil
 }
 
 // FetchNovelChapter export
-func (fa *FetcherAixdzs) FetchNovelChapter(novel *entity.Novel, index int) *string {
+func (fa *FetcherAixdzs) FetchNovelChapter(novel *entity.Novel, index int) (*string, error) {
 	url := fa.GetChapterURL(novel, index)
 	output := ""
-	doc := fa.FetchDoc(url)
+	doc, docErr := fa.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	novelContent, _ := doc.Find("div.content").Html()
 	fmt.Println(novelContent)
 	output += fa.decoder.ConvertString(novelContent)
 
-	return fa.Filter(&output)
+	return fa.Filter(&output), nil
 }

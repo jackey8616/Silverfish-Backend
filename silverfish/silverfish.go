@@ -7,6 +7,7 @@ import (
 	"time"
 
 	entity "silverfish/silverfish/entity"
+	interf "silverfish/silverfish/interface"
 	usecase "silverfish/silverfish/usecase"
 
 	"gopkg.in/mgo.v2/bson"
@@ -17,8 +18,8 @@ type Silverfish struct {
 	Auth          *Auth
 	novelInf      *entity.MongoInf
 	comicInf      *entity.MongoInf
-	novelFetchers map[string]entity.NovelFetcher
-	comicFetchers map[string]entity.ComicFetcher
+	novelFetchers map[string]interf.INovelFetcher
+	comicFetchers map[string]interf.IComicFetcher
 	urls          []string
 }
 
@@ -28,13 +29,13 @@ func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf) *Silver
 	sf.Auth = NewAuth(hashSalt, userInf)
 	sf.novelInf = novelInf
 	sf.comicInf = comicInf
-	sf.novelFetchers = map[string]entity.NovelFetcher{
+	sf.novelFetchers = map[string]interf.INovelFetcher{
 		"www.77xsw.la":      usecase.NewFetcher77xsw("www.77xsw.la"),
 		"tw.hjwzw.com":      usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"www.biquge.com.cn": usecase.NewFetcherBiquge("www.biquge.com.cn"),
 		"tw.aixdzs.com":     usecase.NewFetcherAixdzs("tw.aixdzs.com"),
 	}
-	sf.comicFetchers = map[string]entity.ComicFetcher{
+	sf.comicFetchers = map[string]interf.IComicFetcher{
 		"www.99comic.co":     usecase.NewFetcher99Comic("www.99comic.co"),
 		"www.nokiacn.net":    usecase.NewFetcherNokiacn("www.nokiacn.net"),
 		"www.cartoonmad.com": usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
@@ -76,7 +77,11 @@ func (sf *Silverfish) GetNovelByID(novelID *string) (*entity.Novel, error) {
 	novel := result.(*entity.Novel)
 	if time.Since(novel.LastCrawlTime).Hours() > 24 {
 		lastCrawlTime := novel.LastCrawlTime
-		novel = sf.novelFetchers[novel.DNS].UpdateNovelInfo(novel)
+		novel, err = sf.novelFetchers[novel.DNS].UpdateNovelInfo(novel)
+		if err != nil {
+			log.Print(err.Error())
+			return nil, err
+		}
 		sf.novelInf.Update(bson.M{"novelID": *novelID}, novel)
 		log.Printf("Updated novel <novel_id: %s, title: %s> since %s", novel.NovelID, novel.Title, lastCrawlTime)
 	}
@@ -90,7 +95,11 @@ func (sf *Silverfish) GetNovelByURL(novelURL *string) (*entity.Novel, error) {
 	if err != nil {
 		for _, v := range sf.novelFetchers {
 			if v.Match(novelURL) {
-				record := v.FetchNovelInfo(novelURL)
+				record, err := v.FetchNovelInfo(novelURL)
+				if err != nil {
+					log.Print(err.Error())
+					return nil, err
+				}
 				sf.novelInf.Upsert(bson.M{"novelID": record.NovelID}, record)
 				return record, nil
 			}
@@ -116,7 +125,7 @@ func (sf *Silverfish) GetNovelChapter(novelID, chapterIndex *string) (*string, e
 	if len((*record).Chapters) < index {
 		return nil, errors.New("Wrong Index")
 	} else if val, ok := sf.novelFetchers[(*record).DNS]; ok {
-		return val.FetchNovelChapter(record, index), nil
+		return val.FetchNovelChapter(record, index)
 	}
 	return nil, errors.New("No such fetcher'")
 }
@@ -138,7 +147,11 @@ func (sf *Silverfish) GetComicByID(comicID *string) (*entity.Comic, error) {
 	comic := result.(*entity.Comic)
 	if time.Since(comic.LastCrawlTime).Hours() > 24 {
 		lastCrawlTime := comic.LastCrawlTime
-		comic = sf.comicFetchers[comic.DNS].UpdateComicInfo(comic)
+		comic, err = sf.comicFetchers[comic.DNS].UpdateComicInfo(comic)
+		if err != nil {
+			log.Print(err.Error())
+			return nil, err
+		}
 		sf.comicInf.Update(bson.M{"comicID": *comicID}, comic)
 		log.Printf("Updated comic <comic_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
 	}
@@ -152,7 +165,11 @@ func (sf *Silverfish) GetComicByURL(comicURL *string) (*entity.Comic, error) {
 	if err != nil {
 		for _, v := range sf.comicFetchers {
 			if v.Match(comicURL) {
-				record := v.FetchComicInfo(comicURL)
+				record, err := v.FetchComicInfo(comicURL)
+				if err != nil {
+					log.Print(err.Error())
+					return nil, err
+				}
 				sf.comicInf.Upsert(bson.M{"comicID": record.ComicID}, record)
 				return record, nil
 			}
@@ -178,7 +195,12 @@ func (sf *Silverfish) GetComicChapter(comicID, chapterIndex *string) ([]string, 
 		return nil, errors.New("Wrong Index")
 	} else if val, ok := sf.comicFetchers[(*record).DNS]; ok {
 		if len(record.Chapters[index].ImageURL) == 0 {
-			record.Chapters[index].ImageURL = val.FetchComicChapter(record, index)
+			imgURL, err := val.FetchComicChapter(record, index)
+			if err != nil {
+				log.Print(err.Error())
+				return nil, err
+			}
+			record.Chapters[index].ImageURL = imgURL
 			sf.comicInf.Update(bson.M{"comicID": record.ComicID}, record)
 			log.Printf("Detect <comic:%s> chapter <index: %s/ title: %s> not crawl yet. Crawled.", record.Title, *chapterIndex, record.Chapters[index].Title)
 		}

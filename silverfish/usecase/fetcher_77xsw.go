@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -55,8 +56,11 @@ func (f7 *Fetcher77xsw) Filter(raw *string) *string {
 }
 
 // FetchNovelInfo export
-func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
-	doc := f7.FetchDoc(url)
+func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) (*entity.Novel, error) {
+	doc, docErr := f7.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := f7.GenerateID(url)
 	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
@@ -64,8 +68,7 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
 	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
 	if !ok0 || !ok1 || !ok2 || !ok3 {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chapters := []entity.NovelChapter{}
@@ -92,12 +95,15 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) *entity.Novel {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateNovelInfo export
-func (f7 *Fetcher77xsw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
-	doc := f7.FetchDoc(&novel.URL)
+func (f7 *Fetcher77xsw) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error) {
+	doc, docErr := f7.FetchDoc(&novel.URL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.NovelChapter{}
 	doc.Find("div#list-chapterAll > dl > dd > a").Each(func(i int, s *goquery.Selection) {
@@ -115,24 +121,30 @@ func (f7 *Fetcher77xsw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
 
 	novel.Chapters = chapters
 	novel.LastCrawlTime = time.Now()
-	return novel
+	return novel, nil
 }
 
 // FetchNovelChapter export
-func (f7 *Fetcher77xsw) FetchNovelChapter(novel *entity.Novel, index int) *string {
+func (f7 *Fetcher77xsw) FetchNovelChapter(novel *entity.Novel, index int) (*string, error) {
 	url := f7.GetChapterURL(novel, index)
 	output := ""
-	doc := f7.FetchDoc(url)
+	doc, docErr := f7.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	novelContent := doc.Find("div#htmlContent").Text()
 	output += f7.decoder.ConvertString(novelContent)
 
 	if f7.IsSplit(doc) {
 		url2 := strings.Replace(*url, ".html", "_2.html", 1)
-		doc = f7.FetchDoc(&url2)
+		doc, docErr = f7.FetchDoc(&url2)
+		if docErr != nil {
+			return nil, docErr
+		}
 		novelContent = doc.Find("div#htmlContent").Text()
 		output += f7.decoder.ConvertString(novelContent)
 	}
 
-	return f7.Filter(&output)
+	return f7.Filter(&output), nil
 }

@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -33,8 +34,11 @@ func (fm *FetcherManhuaniu) GetChapterURL(comic *entity.Comic, chapterURL string
 }
 
 // FetchComicInfo export
-func (fm *FetcherManhuaniu) FetchComicInfo(url *string) *entity.Comic {
-	doc := fm.FetchDoc(url)
+func (fm *FetcherManhuaniu) FetchComicInfo(url *string) (*entity.Comic, error) {
+	doc, docErr := fm.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := fm.GenerateID(url)
 	title := doc.Find("div.book-title > h1 > span").Text()
@@ -42,8 +46,7 @@ func (fm *FetcherManhuaniu) FetchComicInfo(url *string) *entity.Comic {
 	description := doc.Find("div#intro-all > p").Text()
 	coverURL, ok := doc.Find("div.book-cover > p.cover > img").Attr("src")
 	if title == "" || author == "" || description == "" || !ok {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chapters := []entity.ComicChapter{}
@@ -71,12 +74,15 @@ func (fm *FetcherManhuaniu) FetchComicInfo(url *string) *entity.Comic {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateComicInfo export
-func (fm *FetcherManhuaniu) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
-	doc := fm.FetchDoc(&comic.URL)
+func (fm *FetcherManhuaniu) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, error) {
+	doc, docErr := fm.FetchDoc(&comic.URL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.ComicChapter{}
 	doc.Find("div.chapter-body > ul > li > a").Each(func(i int, s *goquery.Selection) {
@@ -95,14 +101,18 @@ func (fm *FetcherManhuaniu) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
 
 	comic.Chapters = chapters
 	comic.LastCrawlTime = time.Now()
-	return comic
+	return comic, nil
 }
 
 // FetchComicChapter export
-func (fm *FetcherManhuaniu) FetchComicChapter(comic *entity.Comic, index int) []string {
+func (fm *FetcherManhuaniu) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
 	firstPageURL := fm.GetChapterURL(comic, comic.Chapters[index].URL)
-	firstPage, _ := fm.FetchDoc(firstPageURL).Html()
+	doc, docErr := fm.FetchDoc(firstPageURL)
+	if docErr != nil {
+		return nil, docErr
+	}
+	firstPage, _ := doc.Html()
 
 	rChapterImages, _ := regexp.Compile(`var chapterImages = \[.*?\];`)
 	rImages, _ := regexp.Compile(`".*?"`)
@@ -112,5 +122,5 @@ func (fm *FetcherManhuaniu) FetchComicChapter(comic *entity.Comic, index int) []
 		imageURL := "https://res.nbhbzl.com/" + strings.Replace(images[i], `\/`, "/", -1)
 		comicURLs = append(comicURLs, imageURL)
 	}
-	return comicURLs
+	return comicURLs, nil
 }

@@ -88,6 +88,18 @@ func (a *Auth) IsAdmin(account *string) (bool, error) {
 	return result.(*entity.User).IsAdmin, nil
 }
 
+// GetUser export
+func (a *Auth) GetUser(account *string) (*entity.User, error) {
+	result, err := a.userInf.FindOne(bson.M{"account": *account}, &entity.User{})
+	if err != nil {
+		if err.Error() == "not found" {
+			return nil, errors.New("Account not exists")
+		}
+		return nil, err
+	}
+	return result.(*entity.User), nil
+}
+
 // GetUserBookmark export
 func (a *Auth) GetUserBookmark(account *string) (*entity.Bookmark, error) {
 	result, err := a.userInf.FindOne(bson.M{"account": account}, &entity.User{})

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -31,8 +32,11 @@ func (fn *FetcherNokiacn) GetChapterURL(comic *entity.Comic, chapterURL string) 
 }
 
 // FetchComicInfo export
-func (fn *FetcherNokiacn) FetchComicInfo(url *string) *entity.Comic {
-	doc := fn.FetchDoc(url)
+func (fn *FetcherNokiacn) FetchComicInfo(url *string) (*entity.Comic, error) {
+	doc, docErr := fn.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := fn.GenerateID(url)
 	title := doc.Find("div.cy_title > h1").Text()
@@ -42,8 +46,7 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) *entity.Comic {
 	// The coverURL is still using 55888, manual replace it.
 	coverURL = strings.Replace(coverURL, ":55888", "", 1)
 	if title == "" || author == "" || description == "'" || !ok {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chapters := []entity.ComicChapter{}
@@ -73,12 +76,15 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) *entity.Comic {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateComicInfo export
-func (fn *FetcherNokiacn) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
-	doc := fn.FetchDoc(&comic.URL)
+func (fn *FetcherNokiacn) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, error) {
+	doc, docErr := fn.FetchDoc(&comic.URL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.ComicChapter{}
 	doc.Find("ul#mh-chapter-list-ol-0 > li > a").Each(func(i int, s *goquery.Selection) {
@@ -99,14 +105,18 @@ func (fn *FetcherNokiacn) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
 
 	comic.Chapters = chapters
 	comic.LastCrawlTime = time.Now()
-	return comic
+	return comic, nil
 }
 
 // FetchComicChapter export
-func (fn *FetcherNokiacn) FetchComicChapter(comic *entity.Comic, index int) []string {
+func (fn *FetcherNokiacn) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
 	firstPageURL := fn.GetChapterURL(comic, comic.Chapters[index].URL)
-	firstPage, _ := fn.FetchDoc(firstPageURL).Html()
+	doc, docErr := fn.FetchDoc(firstPageURL)
+	if docErr != nil {
+		return nil, docErr
+	}
+	firstPage, _ := doc.Html()
 
 	rImages, _ := regexp.Compile(`var qTcms_S_m_murl_e=\".*?\";`)
 	base64Code := rImages.FindString(firstPage)
@@ -117,5 +127,5 @@ func (fn *FetcherNokiacn) FetchComicChapter(comic *entity.Comic, index int) []st
 		imageURL := "http://n.aiwenwo.net" + images[i]
 		comicURLs = append(comicURLs, imageURL)
 	}
-	return comicURLs
+	return comicURLs, nil
 }

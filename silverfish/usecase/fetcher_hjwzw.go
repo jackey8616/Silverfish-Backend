@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -45,8 +46,11 @@ func (fh *FetcherHjwzw) Filter(raw *string) *string {
 }
 
 // FetchNovelInfo export
-func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
-	doc := fh.FetchDoc(url)
+func (fh *FetcherHjwzw) FetchNovelInfo(url *string) (*entity.Novel, error) {
+	doc, docErr := fh.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := fh.GenerateID(url)
 	title, ok0 := doc.Find("meta[property='og:novel:book_name']").Attr("content")
@@ -54,11 +58,13 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
 	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
 	if !ok0 || !ok1 || !ok2 || !ok3 {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 	chapterURL := strings.Replace(*url, "Book", "Book/Chapter", 1)
-	doc = fh.FetchDoc(&chapterURL)
+	doc, docErr = fh.FetchDoc(&chapterURL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.NovelChapter{}
 	doc.Find("div#tbchapterlist > table > tbody > tr > td > a").Each(func(i int, s *goquery.Selection) {
@@ -84,13 +90,16 @@ func (fh *FetcherHjwzw) FetchNovelInfo(url *string) *entity.Novel {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateNovelInfo export
-func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
+func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error) {
 	chapterURL := strings.Replace(novel.URL, "Book", "Book/Chapter", 1)
-	doc := fh.FetchDoc(&chapterURL)
+	doc, docErr := fh.FetchDoc(&chapterURL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.NovelChapter{}
 	doc.Find("div#tbchapterlist > table > tbody > tr > td > a").Each(func(i int, s *goquery.Selection) {
@@ -108,17 +117,20 @@ func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) *entity.Novel {
 
 	novel.Chapters = chapters
 	novel.LastCrawlTime = time.Now()
-	return novel
+	return novel, nil
 }
 
 // FetchNovelChapter export
-func (fh *FetcherHjwzw) FetchNovelChapter(novel *entity.Novel, index int) *string {
+func (fh *FetcherHjwzw) FetchNovelChapter(novel *entity.Novel, index int) (*string, error) {
 	url := fh.GetChapterURL(novel, index)
-	doc := fh.FetchDoc(url)
+	doc, docErr := fh.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	anchor := doc.Find("a[title='" + novel.Title + "']")
 	novelDiv := anchor.Parent().Parent()
 	novelContent, _ := novelDiv.Html()
 
-	return fh.Filter(&novelContent)
+	return fh.Filter(&novelContent), nil
 }

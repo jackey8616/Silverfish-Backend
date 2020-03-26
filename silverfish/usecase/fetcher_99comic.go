@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -32,8 +33,11 @@ func (f9 *Fetcher99Comic) GetChapterURL(comic *entity.Comic, chapterURL string) 
 }
 
 // FetchComicInfo export
-func (f9 *Fetcher99Comic) FetchComicInfo(url *string) *entity.Comic {
-	doc := f9.FetchDoc(url)
+func (f9 *Fetcher99Comic) FetchComicInfo(url *string) (*entity.Comic, error) {
+	doc, docErr := f9.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := f9.GenerateID(url)
 	title := doc.Find("div.comic_deCon.autoHeight > h1").Text()
@@ -41,8 +45,7 @@ func (f9 *Fetcher99Comic) FetchComicInfo(url *string) *entity.Comic {
 	description := strings.Replace(doc.Find("p.comic_deCon_d").Text(), " ", "", -1)
 	coverURL, ok := doc.Find("div.comic_i_img > img").Attr("src")
 	if title == "" || author == "" || description == "'" || !ok {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chapters := []entity.ComicChapter{}
@@ -70,12 +73,15 @@ func (f9 *Fetcher99Comic) FetchComicInfo(url *string) *entity.Comic {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateComicInfo export
-func (f9 *Fetcher99Comic) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
-	doc := f9.FetchDoc(&comic.URL)
+func (f9 *Fetcher99Comic) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, error) {
+	doc, docErr := f9.FetchDoc(&comic.URL)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.ComicChapter{}
 	doc.Find("ul#chapter-list-3 > li > a, ul#chapter-list-2 > li > a").Each(func(i int, s *goquery.Selection) {
@@ -94,14 +100,18 @@ func (f9 *Fetcher99Comic) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
 
 	comic.Chapters = chapters
 	comic.LastCrawlTime = time.Now()
-	return comic
+	return comic, nil
 }
 
 // FetchComicChapter export
-func (f9 *Fetcher99Comic) FetchComicChapter(comic *entity.Comic, index int) []string {
+func (f9 *Fetcher99Comic) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
 	firstPageURL := f9.GetChapterURL(comic, comic.Chapters[index].URL)
-	firstPage, _ := f9.FetchDoc(firstPageURL).Html()
+	doc, docErr := f9.FetchDoc(firstPageURL)
+	if docErr != nil {
+		return nil, docErr
+	}
+	firstPage, _ := doc.Html()
 
 	rChapterImages, _ := regexp.Compile(`var chapterImages = \[.*?\];`)
 	rImages, _ := regexp.Compile(`".*?"`)
@@ -111,5 +121,5 @@ func (f9 *Fetcher99Comic) FetchComicChapter(comic *entity.Comic, index int) []st
 		imageURL := "http://comic.allviki.com/" + strings.Replace(images[i], `\/`, "/", 1)
 		comicURLs = append(comicURLs, imageURL)
 	}
-	return comicURLs
+	return comicURLs, nil
 }

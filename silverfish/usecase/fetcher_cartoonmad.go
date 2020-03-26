@@ -33,12 +33,15 @@ func (fc *FetcherCartoonmad) GetChapterURL(comic *entity.Comic, chapterURL strin
 }
 
 // FetchComicInfo export
-func (fc *FetcherCartoonmad) FetchComicInfo(url *string) *entity.Comic {
+func (fc *FetcherCartoonmad) FetchComicInfo(url *string) (*entity.Comic, error) {
 	if strings.Contains(*url, "/m/") == false {
 		temp := strings.Replace(*url, "/comic/", "/m/comic/", 1)
 		url = &temp
 	}
-	doc, _ := fc.FetchDocWithEncoding(url, "Big5")
+	doc, _, docErr := fc.FetchDocWithEncoding(url, "Big5")
+	if docErr != nil {
+		return nil, docErr
+	}
 	id := fc.GenerateID(url)
 
 	anchor := doc.Find("table:nth-of-type(2) > tbody > tr:nth-of-type(2) > td")
@@ -52,8 +55,7 @@ func (fc *FetcherCartoonmad) FetchComicInfo(url *string) *entity.Comic {
 	coverURL, err1 := anchor.Find("table > tbody > tr > td:nth-of-type(2) > img").Attr("src")
 	coverURL = "https://" + *fc.dns + coverURL
 	if !err0 || author == "" || description == "" || !err1 {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chapters := []entity.ComicChapter{}
@@ -81,12 +83,15 @@ func (fc *FetcherCartoonmad) FetchComicInfo(url *string) *entity.Comic {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateComicInfo export
-func (fc *FetcherCartoonmad) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
-	doc, _ := fc.FetchDocWithEncoding(&comic.URL, "Big5")
+func (fc *FetcherCartoonmad) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, error) {
+	doc, _, docErr := fc.FetchDocWithEncoding(&comic.URL, "Big5")
+	if docErr != nil {
+		return nil, docErr
+	}
 	anchor := doc.Find("table:nth-of-type(2) > tbody > tr:nth-of-type(2) > td")
 
 	chapters := []entity.ComicChapter{}
@@ -107,14 +112,17 @@ func (fc *FetcherCartoonmad) UpdateComicInfo(comic *entity.Comic) *entity.Comic 
 
 	comic.Chapters = chapters
 	comic.LastCrawlTime = time.Now()
-	return comic
+	return comic, nil
 }
 
 // FetchComicChapter export
-func (fc *FetcherCartoonmad) FetchComicChapter(comic *entity.Comic, index int) []string {
+func (fc *FetcherCartoonmad) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
 	url := fc.GetChapterURL(comic, comic.Chapters[index].URL)
-	doc := fc.FetchDoc(url)
+	doc, docErr := fc.FetchDoc(url)
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	lastIndex, _ := strconv.Atoi(doc.Find("table > tbody > tr:nth-of-type(6) > td > a:nth-last-of-type(2)").Text())
 	partImageURL, _ := doc.Find("table > tbody > tr:nth-of-type(5) > td > table > tbody > tr > td > a > img").Attr("src")
@@ -125,7 +133,7 @@ func (fc *FetcherCartoonmad) FetchComicChapter(comic *entity.Comic, index int) [
 		comicURLs = append(comicURLs, fmt.Sprintf("%s/%03d.jpg", touchedURL, i))
 	}
 
-	return comicURLs
+	return comicURLs, nil
 }
 
 func (fc *FetcherCartoonmad) touchImage(refererURL, url *string) string {
@@ -135,7 +143,7 @@ func (fc *FetcherCartoonmad) touchImage(refererURL, url *string) string {
 
 	res, err := cli.Do(req)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "When TouchImage"))
+		log.Print(errors.Wrap(err, "When TouchImage"))
 		return ""
 	}
 

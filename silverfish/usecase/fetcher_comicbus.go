@@ -35,18 +35,20 @@ func (fc *FetcherComicbus) GetChapterURL(comic *entity.Comic, chapterURL string)
 }
 
 // FetchComicInfo export
-func (fc *FetcherComicbus) FetchComicInfo(url *string) *entity.Comic {
-	doc, cookies := fc.FetchDocWithEncoding(url, "Big5")
+func (fc *FetcherComicbus) FetchComicInfo(url *string) (*entity.Comic, error) {
+	doc, cookies, docErr := fc.FetchDocWithEncoding(url, "Big5")
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	id := fc.GenerateID(url)
 	title := doc.Find("td > font[style='font-size:10pt; letter-spacing:1px']").Text()
 	author := doc.Find("td:contains('作者：')+td").Text()
 	description := doc.Find("tbody > tr > td[style='line-height:25px']").Text()
-	coverURL, ok := doc.Find("img[style='border:#CCCCCC solid 1px']").Attr("src")
+	coverURL, ok := doc.Find("img[style*='border:#CCCCCC solid 1px;']").Attr("src")
 	coverURL = "https://comicbus.com/" + coverURL
 	if title == "" || author == "" || description == "" || !ok {
-		log.Printf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
-		return nil
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	chapters := []entity.ComicChapter{}
@@ -80,12 +82,15 @@ func (fc *FetcherComicbus) FetchComicInfo(url *string) *entity.Comic {
 		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
-	}
+	}, nil
 }
 
 // UpdateComicInfo export
-func (fc *FetcherComicbus) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
-	doc, cookies := fc.FetchDocWithEncoding(&comic.URL, "Big5")
+func (fc *FetcherComicbus) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, error) {
+	doc, cookies, docErr := fc.FetchDocWithEncoding(&comic.URL, "Big5")
+	if docErr != nil {
+		return nil, docErr
+	}
 
 	chapters := []entity.ComicChapter{}
 	doc.Find("table#rp_ctl05_0_dl_0 > tbody > tr").Each(func(i int, s *goquery.Selection) {
@@ -110,14 +115,17 @@ func (fc *FetcherComicbus) UpdateComicInfo(comic *entity.Comic) *entity.Comic {
 
 	comic.Chapters = chapters
 	comic.LastCrawlTime = time.Now()
-	return comic
+	return comic, nil
 }
 
 // FetchComicChapter export
-func (fc *FetcherComicbus) FetchComicChapter(comic *entity.Comic, index int) []string {
+func (fc *FetcherComicbus) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
 	firstPageURL := comic.Chapters[index].URL
-	doc, _ := fc.FetchDocWithEncoding(&firstPageURL, "Big5")
+	doc, docErr := fc.FetchDoc(&firstPageURL)
+	if docErr != nil {
+		return nil, docErr
+	}
 	form, _ := doc.Find("form#Form1 > script").Html()
 	firstURL, pageCount := fc.initPage(index+1, 1, &form)
 	comicURLs = append(comicURLs, *firstURL)
@@ -126,7 +134,7 @@ func (fc *FetcherComicbus) FetchComicChapter(comic *entity.Comic, index int) []s
 		imageURL, _ := fc.initPage(index+1, i+1, &form)
 		comicURLs = append(comicURLs, *imageURL)
 	}
-	return comicURLs
+	return comicURLs, nil
 }
 
 func (fc *FetcherComicbus) cview(url, catid, copyright *string, cookie *http.Cookie) *string {

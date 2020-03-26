@@ -3,7 +3,6 @@ package usecase
 import (
 	"crypto/md5"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -41,21 +40,19 @@ func (f *Fetcher) Match(url *string) bool {
 }
 
 // FetchDoc export
-func (f *Fetcher) FetchDoc(url *string) *goquery.Document {
+func (f *Fetcher) FetchDoc(url *string) (*goquery.Document, error) {
 	doc, err := goquery.NewDocument(*url)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "When FetchDoc"))
-		return nil
+		return nil, errors.Wrap(err, "When FetchDoc")
 	}
-	return doc
+	return doc, nil
 }
 
 // FetchDocWithEncoding export
-func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Document, []*http.Cookie) {
+func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Document, []*http.Cookie, error) {
 	res, err := http.Get(*url)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "When Get"))
-		return nil, nil
+		return nil, nil, errors.Wrap(err, "When Get")
 	}
 	defer res.Body.Close()
 
@@ -63,17 +60,15 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Do
 	// `charset` being one of the charsets known by the iconv package.
 	utfBody, err := iconv.NewReader(res.Body, charset, "utf-8")
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "When Convert UTF-8"))
-		return nil, nil
+		return nil, nil, errors.Wrap(err, "When Convert UTF-8")
 	}
 
 	// use utfBody using goquery
 	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "When FetchDocWithEncoding"))
-		return nil, nil
+		return nil, nil, errors.Wrap(err, "When FetchDocWithEncoding")
 	}
-	return doc, res.Cookies()
+	return doc, res.Cookies(), nil
 }
 
 // GenerateID export
