@@ -1,4 +1,4 @@
-FROM golang:1.12
+FROM golang:1.14
 
 MAINTAINER clooooode<jackey8616@gmail.com>
 
@@ -8,6 +8,7 @@ WORKDIR /
 
 COPY . /
 
+RUN go version
 RUN go mod download
 
-ENTRYPOINT ["env", "config=config.json", "go", "run", "main.go", "config.go", "router.go"]
+ENTRYPOINT ["env", "config=config.json", "go", "run", "main.go", "config.go"]
