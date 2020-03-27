@@ -34,14 +34,34 @@ func (fc *FetcherComicbus) GetChapterURL(comic *entity.Comic, chapterURL string)
 	return &url
 }
 
-// FetchComicInfo export
-func (fc *FetcherComicbus) FetchComicInfo(url *string) (*entity.Comic, error) {
+// CrawlComic export
+func (fc *FetcherComicbus) CrawlComic(url *string) (*entity.Comic, error) {
 	doc, cookies, docErr := fc.FetchDocWithEncoding(url, "Big5")
 	if docErr != nil {
 		return nil, docErr
 	}
 
 	id := fc.GenerateID(url)
+	info, infoErr := fc.FetchComicInfo(id, doc, cookies)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := fc.FetchChapterInfo(doc, cookies, info.Title, *url)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
+
+	comic := &entity.Comic{
+		DNS:      *fc.dns,
+		URL:      *url,
+		Chapters: chapters,
+	}
+	comic.SetComicInfo(info)
+	return comic, nil
+}
+
+// FetchComicInfo export
+func (fc *FetcherComicbus) FetchComicInfo(comicID *string, doc *goquery.Document, cookies []*http.Cookie) (*entity.ComicInfo, error) {
 	title := doc.Find("td > font[style='font-size:10pt; letter-spacing:1px']").Text()
 	author := doc.Find("td:contains('作者：')+td").Text()
 	description := doc.Find("tbody > tr > td[style='line-height:25px']").Text()
@@ -51,6 +71,18 @@ func (fc *FetcherComicbus) FetchComicInfo(url *string) (*entity.Comic, error) {
 		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
+	return &entity.ComicInfo{
+		ComicID:       *comicID,
+		Title:         title,
+		Author:        author,
+		Description:   description,
+		CoverURL:      coverURL,
+		LastCrawlTime: time.Now(),
+	}, nil
+}
+
+// FetchChapterInfo export
+func (fc *FetcherComicbus) FetchChapterInfo(doc *goquery.Document, cookies []*http.Cookie, title, url string) []entity.ComicChapter {
 	chapters := []entity.ComicChapter{}
 	doc.Find("table#rp_ctl05_0_dl_0 > tbody > tr").Each(func(i int, s *goquery.Selection) {
 		s.Find("td[style='width:10%;white-space:nowrap;'] > a").Each(func(j int, r *goquery.Selection) {
@@ -67,22 +99,12 @@ func (fc *FetcherComicbus) FetchComicInfo(url *string) (*entity.Comic, error) {
 					ImageURL: []string{},
 				})
 			} else {
-				logrus.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+				logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
 			}
 		})
 	})
 
-	return &entity.Comic{
-		ComicID:       *id,
-		DNS:           *fc.dns,
-		Title:         title,
-		Author:        author,
-		Description:   description,
-		URL:           *url,
-		Chapters:      chapters,
-		CoverURL:      coverURL,
-		LastCrawlTime: time.Now(),
-	}, nil
+	return chapters
 }
 
 // UpdateComicInfo export
@@ -92,29 +114,18 @@ func (fc *FetcherComicbus) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, 
 		return nil, docErr
 	}
 
-	chapters := []entity.ComicChapter{}
-	doc.Find("table#rp_ctl05_0_dl_0 > tbody > tr").Each(func(i int, s *goquery.Selection) {
-		s.Find("td[style='width:10%;white-space:nowrap;'] > a").Each(func(j int, r *goquery.Selection) {
-			cview, ok := r.Attr("onclick")
-			if ok {
-				click := strings.Split(cview, ",")
-				click[0] = click[0][strings.Index(click[0], "'")+1 : strings.LastIndex(click[0], "'")]
-				click[2] = click[2][0:strings.Index(click[2], ")")]
-				chapterTitle := strings.Replace(r.Text(), "\n", "", 1)
-				chapterURL := *fc.cview(&click[0], &click[1], &click[2], cookies[0])
-				chapters = append(chapters, entity.ComicChapter{
-					Title:    chapterTitle,
-					URL:      chapterURL,
-					ImageURL: []string{},
-				})
-			} else {
-				logrus.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
-			}
-		})
-	})
+	info, infoErr := fc.FetchComicInfo(&comic.ComicID, doc, cookies)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := fc.FetchChapterInfo(doc, cookies, comic.Title, comic.URL)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
 
-	comic.Chapters = chapters
 	comic.LastCrawlTime = time.Now()
+	comic.SetComicInfo(info)
+	comic.Chapters = chapters
 	return comic, nil
 }
 

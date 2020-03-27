@@ -3,6 +3,7 @@ package usecase
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -31,14 +32,34 @@ func (fn *FetcherNokiacn) GetChapterURL(comic *entity.Comic, chapterURL string) 
 	return &url
 }
 
-// FetchComicInfo export
-func (fn *FetcherNokiacn) FetchComicInfo(url *string) (*entity.Comic, error) {
+// CrawlComic export
+func (fn *FetcherNokiacn) CrawlComic(url *string) (*entity.Comic, error) {
 	doc, docErr := fn.FetchDoc(url)
 	if docErr != nil {
 		return nil, docErr
 	}
 
 	id := fn.GenerateID(url)
+	info, infoErr := fn.FetchComicInfo(id, doc, nil)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := fn.FetchChapterInfo(doc, nil, info.Title, *url)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
+
+	comic := &entity.Comic{
+		DNS:      *fn.dns,
+		URL:      *url,
+		Chapters: chapters,
+	}
+	comic.SetComicInfo(info)
+	return comic, nil
+}
+
+// FetchComicInfo export
+func (fn *FetcherNokiacn) FetchComicInfo(comicID *string, doc *goquery.Document, cookies []*http.Cookie) (*entity.ComicInfo, error) {
 	title := doc.Find("div.cy_title > h1").Text()
 	author := doc.Find("div.cy_xinxi:nth-child(4) > span > a").Text()
 	description := doc.Find("p#comic-description").Text()
@@ -49,6 +70,18 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) (*entity.Comic, error) {
 		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
+	return &entity.ComicInfo{
+		ComicID:       *comicID,
+		Title:         title,
+		Author:        author,
+		Description:   description,
+		CoverURL:      coverURL,
+		LastCrawlTime: time.Now(),
+	}, nil
+}
+
+// FetchChapterInfo export
+func (fn *FetcherNokiacn) FetchChapterInfo(doc *goquery.Document, cookies []*http.Cookie, title, url string) []entity.ComicChapter {
 	chapters := []entity.ComicChapter{}
 	doc.Find("ul#mh-chapter-list-ol-0 > li > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Find("p").Text()
@@ -62,21 +95,11 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) (*entity.Comic, error) {
 				},
 			}, chapters...)
 		} else {
-			logrus.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
 		}
 	})
 
-	return &entity.Comic{
-		ComicID:       *id,
-		DNS:           *fn.dns,
-		Title:         title,
-		Author:        author,
-		Description:   description,
-		URL:           *url,
-		Chapters:      chapters,
-		CoverURL:      coverURL,
-		LastCrawlTime: time.Now(),
-	}, nil
+	return chapters
 }
 
 // UpdateComicInfo export
@@ -86,25 +109,18 @@ func (fn *FetcherNokiacn) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 		return nil, docErr
 	}
 
-	chapters := []entity.ComicChapter{}
-	doc.Find("ul#mh-chapter-list-ol-0 > li > a").Each(func(i int, s *goquery.Selection) {
-		chapterTitle := s.Find("p").Text()
-		chapterURL, ok := s.Attr("href")
-		if ok {
-			chapters = append([]entity.ComicChapter{
-				entity.ComicChapter{
-					Title:    chapterTitle,
-					URL:      chapterURL,
-					ImageURL: []string{},
-				},
-			}, chapters...)
-		} else {
-			logrus.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
-		}
-	})
+	info, infoErr := fn.FetchComicInfo(&comic.ComicID, doc, nil)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := fn.FetchChapterInfo(doc, nil, comic.Title, comic.URL)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
 
-	comic.Chapters = chapters
 	comic.LastCrawlTime = time.Now()
+	comic.SetComicInfo(info)
+	comic.Chapters = chapters
 	return comic, nil
 }
 

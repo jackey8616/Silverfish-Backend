@@ -1,6 +1,7 @@
 package interf
 
 import (
+	"net/http"
 	entity "silverfish/silverfish/entity"
 
 	"github.com/PuerkitoBio/goquery"
@@ -28,7 +29,9 @@ type IComicFetcher interface {
 	FetchDoc(url *string) (*goquery.Document, error)
 
 	GetChapterURL(comic *entity.Comic, url string) *string
-	FetchComicInfo(url *string) (*entity.Comic, error)
+	CrawlComic(url *string) (*entity.Comic, error)
+	FetchComicInfo(comicID *string, doc *goquery.Document, cookies []*http.Cookie) (*entity.ComicInfo, error)
+	FetchChapterInfo(doc *goquery.Document, cookies []*http.Cookie, title, url string) []entity.ComicChapter
 	UpdateComicInfo(comic *entity.Comic) (*entity.Comic, error)
 	FetchComicChapter(comic *entity.Comic, index int) ([]string, error)
 }

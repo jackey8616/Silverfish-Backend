@@ -36,7 +36,7 @@ func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf) *Silver
 		"tw.aixdzs.com":     usecase.NewFetcherAixdzs("tw.aixdzs.com"),
 	}
 	sf.comicFetchers = map[string]interf.IComicFetcher{
-		"www.99comic.co":     usecase.NewFetcher99Comic("www.99comic.co"),
+		//"www.99comic.co":     usecase.NewFetcher99Comic("www.99comic.co"),
 		"www.nokiacn.net":    usecase.NewFetcherNokiacn("www.nokiacn.net"),
 		"www.cartoonmad.com": usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
 		"comicbus.com":       usecase.NewFetcherComicbus("comicbus.com"),
@@ -165,7 +165,7 @@ func (sf *Silverfish) GetComicByURL(comicURL *string) (*entity.Comic, error) {
 	if err != nil {
 		for _, v := range sf.comicFetchers {
 			if v.Match(comicURL) {
-				record, err := v.FetchComicInfo(comicURL)
+				record, err := v.CrawlComic(comicURL)
 				if err != nil {
 					logrus.Print(err.Error())
 					return nil, err
