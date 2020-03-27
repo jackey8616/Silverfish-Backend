@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/axgle/mahonia"
+	"github.com/sirupsen/logrus"
 )
 
 // FetcherBiquge export
@@ -45,23 +45,56 @@ func (fb *FetcherBiquge) Filter(raw *string) *string {
 	return raw
 }
 
-// FetchNovelInfo export
-func (fb *FetcherBiquge) FetchNovelInfo(url *string) (*entity.Novel, error) {
+// CrawlNovel export
+func (fb *FetcherBiquge) CrawlNovel(url *string) (*entity.Novel, error) {
 	doc, docErr := fb.FetchDoc(url)
 	if docErr != nil {
 		return nil, docErr
 	}
 
 	id := fb.GenerateID(url)
+	description := doc.Find("div[id='intro']").Text()
+
+	info, infoErr := fb.FetchNovelInfo(id, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := fb.FetchChapterInfo(doc, info.Title, *url)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
+
+	novel := &entity.Novel{
+		DNS:         *fb.dns,
+		Description: fb.decoder.ConvertString(description),
+		URL:         *url,
+		Chapters:    chapters,
+	}
+	novel.SetNovelInfo(info)
+	return novel, nil
+}
+
+// FetchNovelInfo export
+func (fb *FetcherBiquge) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
 	title := doc.Find("div[id='info'] > h1").Text()
 	author := doc.Find("div[id='info'] > p:nth-of-type(1)").Text()
 	author = strings.Split(author, "：")[1]
-	description := doc.Find("div[id='intro']").Text()
 	coverURL, ok := doc.Find("div[id='fmimg'] > img").Attr("src")
-	if title == "" || author == "" || description == "" || !ok {
-		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
+	if title == "" || author == "" || !ok {
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, coverURL: %s", title, author, coverURL)
 	}
 
+	return &entity.NovelInfo{
+		NovelID:       *novelID,
+		Title:         fb.decoder.ConvertString(title),
+		Author:        fb.decoder.ConvertString(author),
+		CoverURL:      coverURL,
+		LastCrawlTime: time.Now(),
+	}, nil
+}
+
+// FetchChapterInfo export
+func (fb *FetcherBiquge) FetchChapterInfo(doc *goquery.Document, title, url string) []entity.NovelChapter {
 	chapters := []entity.NovelChapter{}
 	doc.Find("div[id='list'] > dl > dd > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Text()
@@ -72,21 +105,11 @@ func (fb *FetcherBiquge) FetchNovelInfo(url *string) (*entity.Novel, error) {
 				URL:   chapterURL,
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
 		}
 	})
 
-	return &entity.Novel{
-		NovelID:       *id,
-		DNS:           *fb.dns,
-		Title:         fb.decoder.ConvertString(title),
-		Author:        fb.decoder.ConvertString(author),
-		Description:   fb.decoder.ConvertString(description),
-		URL:           *url,
-		Chapters:      chapters,
-		CoverURL:      coverURL,
-		LastCrawlTime: time.Now(),
-	}, nil
+	return chapters
 }
 
 // UpdateNovelInfo export
@@ -96,22 +119,18 @@ func (fb *FetcherBiquge) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, er
 		return nil, docErr
 	}
 
-	chapters := []entity.NovelChapter{}
-	doc.Find("div[id='list'] > dl > dd > a").Each(func(i int, s *goquery.Selection) {
-		chapterTitle := s.Text()
-		chapterURL, ok := s.Attr("href")
-		if chapterTitle != "" && ok {
-			chapters = append(chapters, entity.NovelChapter{
-				Title: fb.decoder.ConvertString(chapterTitle),
-				URL:   chapterURL,
-			})
-		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", novel.Title, novel.URL)
-		}
-	})
+	info, infoErr := fb.FetchNovelInfo(&novel.NovelID, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := fb.FetchChapterInfo(doc, info.Title, novel.URL)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
 
+	info.LastCrawlTime = time.Now()
+	novel.SetNovelInfo(info)
 	novel.Chapters = chapters
-	novel.LastCrawlTime = time.Now()
 	return novel, nil
 }
 

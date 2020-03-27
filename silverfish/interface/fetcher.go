@@ -15,7 +15,9 @@ type INovelFetcher interface {
 	Filter(raw *string) *string
 
 	GetChapterURL(novel *entity.Novel, index int) *string
-	FetchNovelInfo(url *string) (*entity.Novel, error)
+	CrawlNovel(url *string) (*entity.Novel, error)
+	FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error)
+	FetchChapterInfo(doc *goquery.Document, title, url string) []entity.NovelChapter
 	UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error)
 	FetchNovelChapter(novel *entity.Novel, index int) (*string, error)
 }

@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/axgle/mahonia"
+	"github.com/sirupsen/logrus"
 )
 
 // Fetcher77xsw export
@@ -55,23 +55,60 @@ func (f7 *Fetcher77xsw) Filter(raw *string) *string {
 	return &str
 }
 
-// FetchNovelInfo export
-func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) (*entity.Novel, error) {
+// CrawlNovel export
+func (f7 *Fetcher77xsw) CrawlNovel(url *string) (*entity.Novel, error) {
 	doc, docErr := f7.FetchDoc(url)
 	if docErr != nil {
 		return nil, docErr
 	}
 
 	id := f7.GenerateID(url)
-	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
-	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
-	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
-	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
-	if !ok0 || !ok1 || !ok2 || !ok3 {
-		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
+	description, ok := doc.Find("meta[property='og:description']").Attr("content")
+	if !ok {
+		return nil, fmt.Errorf("Description missed, description: %s", description)
 	}
 
+	info, infoErr := f7.FetchNovelInfo(id, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := f7.FetchChapterInfo(doc, info.Title, *url)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
+
+	novel := &entity.Novel{
+		DNS:         *f7.dns,
+		Description: f7.decoder.ConvertString(description),
+		URL:         *url,
+		Chapters:    chapters,
+	}
+	novel.SetNovelInfo(info)
+	return novel, nil
+}
+
+// FetchNovelInfo export
+func (f7 *Fetcher77xsw) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
+	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
+	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
+	coverURL, ok2 := doc.Find("meta[property='og:image']").Attr("content")
+	if !ok0 || !ok1 || !ok2 {
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, coverURL: %s", title, author, coverURL)
+	}
+
+	return &entity.NovelInfo{
+		NovelID:       *novelID,
+		Title:         f7.decoder.ConvertString(title),
+		Author:        f7.decoder.ConvertString(author),
+		CoverURL:      coverURL,
+		LastCrawlTime: time.Now(),
+	}, nil
+}
+
+// FetchChapterInfo export
+func (f7 *Fetcher77xsw) FetchChapterInfo(doc *goquery.Document, title, url string) []entity.NovelChapter {
 	chapters := []entity.NovelChapter{}
+
 	doc.Find("div#list-chapterAll > dl > dd > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle, ok0 := s.Attr("title")
 		chapterURL, ok1 := s.Attr("href")
@@ -81,21 +118,11 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(url *string) (*entity.Novel, error) {
 				URL:   chapterURL,
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
 		}
 	})
 
-	return &entity.Novel{
-		NovelID:       *id,
-		DNS:           *f7.dns,
-		Title:         f7.decoder.ConvertString(title),
-		Author:        f7.decoder.ConvertString(author),
-		Description:   f7.decoder.ConvertString(description),
-		URL:           *url,
-		Chapters:      chapters,
-		CoverURL:      coverURL,
-		LastCrawlTime: time.Now(),
-	}, nil
+	return chapters
 }
 
 // UpdateNovelInfo export
@@ -104,23 +131,18 @@ func (f7 *Fetcher77xsw) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, err
 	if docErr != nil {
 		return nil, docErr
 	}
+	info, infoErr := f7.FetchNovelInfo(&novel.NovelID, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapters := f7.FetchChapterInfo(doc, novel.Title, novel.URL)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
 
-	chapters := []entity.NovelChapter{}
-	doc.Find("div#list-chapterAll > dl > dd > a").Each(func(i int, s *goquery.Selection) {
-		chapterTitle, ok0 := s.Attr("title")
-		chapterURL, ok1 := s.Attr("href")
-		if ok0 && ok1 {
-			chapters = append(chapters, entity.NovelChapter{
-				Title: f7.decoder.ConvertString(chapterTitle),
-				URL:   chapterURL,
-			})
-		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", novel.Title, novel.URL)
-		}
-	})
-
+	info.LastCrawlTime = time.Now()
+	novel.SetNovelInfo(info)
 	novel.Chapters = chapters
-	novel.LastCrawlTime = time.Now()
 	return novel, nil
 }
 

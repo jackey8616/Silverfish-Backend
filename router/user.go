@@ -3,7 +3,6 @@ package router
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	interf "silverfish/router/interface"
@@ -11,6 +10,7 @@ import (
 	entity "silverfish/silverfish/entity"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 // BlueprintUser export
@@ -87,7 +87,7 @@ func (bpu *BlueprintUser) register(w http.ResponseWriter, r *http.Request) {
 	if recaptchaToken == "" {
 		response = entity.NewAPIResponse(nil, errors.New("Missing recaptcha token"))
 	} else if res, err := bpu.router.VerifyRecaptcha(&recaptchaToken); res == false {
-		fmt.Println(err)
+		logrus.Info(err)
 		response = entity.NewAPIResponse(nil, errors.New("Recaptcha verify failed"))
 	} else {
 		user, err := bpu.auth.Register(false, &account, &password)
@@ -111,7 +111,7 @@ func (bpu *BlueprintUser) login(w http.ResponseWriter, r *http.Request) {
 	if recaptchaToken == "" {
 		response = entity.NewAPIResponse(nil, errors.New("Missing recaptcha token"))
 	} else if res, err := bpu.router.VerifyRecaptcha(&recaptchaToken); res == false {
-		fmt.Println(err)
+		logrus.Info(err)
 		response = entity.NewAPIResponse(nil, errors.New("Recaptcha verify failed"))
 	} else {
 		user, err := bpu.auth.Login(&account, &password)

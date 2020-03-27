@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
@@ -13,6 +12,7 @@ import (
 	entity "silverfish/silverfish/entity"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 )
 
 // FetcherManhuaniu export
@@ -60,7 +60,7 @@ func (fm *FetcherManhuaniu) FetchComicInfo(url *string) (*entity.Comic, error) {
 				ImageURL: []string{},
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, *url)
 		}
 	})
 
@@ -95,7 +95,7 @@ func (fm *FetcherManhuaniu) UpdateComicInfo(comic *entity.Comic) (*entity.Comic,
 				ImageURL: []string{},
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
 		}
 	})
 

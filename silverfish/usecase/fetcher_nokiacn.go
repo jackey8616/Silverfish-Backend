@@ -3,7 +3,6 @@ package usecase
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	entity "silverfish/silverfish/entity"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 )
 
 // FetcherNokiacn export
@@ -62,7 +62,7 @@ func (fn *FetcherNokiacn) FetchComicInfo(url *string) (*entity.Comic, error) {
 				},
 			}, chapters...)
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, *url)
 		}
 	})
 
@@ -99,7 +99,7 @@ func (fn *FetcherNokiacn) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 				},
 			}, chapters...)
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
 		}
 	})
 

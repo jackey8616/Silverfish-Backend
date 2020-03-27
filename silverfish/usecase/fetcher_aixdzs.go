@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/axgle/mahonia"
+	"github.com/sirupsen/logrus"
 )
 
 // FetcherAixdzs export
@@ -46,27 +46,63 @@ func (fa *FetcherAixdzs) Filter(raw *string) *string {
 	return raw
 }
 
-// FetchNovelInfo export
-func (fa *FetcherAixdzs) FetchNovelInfo(url *string) (*entity.Novel, error) {
+// CrawlNovel export
+func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 	doc, docErr := fa.FetchDoc(url)
 	if docErr != nil {
 		return nil, docErr
 	}
 
 	id := fa.GenerateID(url)
-	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
-	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
-	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
-	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
-	if !ok0 || !ok1 || !ok2 || !ok3 {
-		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
+	description, ok := doc.Find("meta[property='og:description']").Attr("content")
+	if !ok {
+		return nil, fmt.Errorf("Something missing, description: %s", description)
 	}
 
+	info, infoErr := fa.FetchNovelInfo(id, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
 	chaptersURL := strings.Replace(*url, "/d/", "/read/", 1)
 	doc, docErr = fa.FetchDoc(&chaptersURL)
 	if docErr != nil {
 		return nil, docErr
 	}
+	chapters := fa.FetchChapterInfo(doc, info.Title, *url)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
+
+	novel := &entity.Novel{
+		DNS:         *fa.dns,
+		Description: fa.decoder.ConvertString(description),
+		URL:         *url,
+		Chapters:    chapters,
+	}
+	novel.SetNovelInfo(info)
+	return novel, nil
+}
+
+// FetchNovelInfo export
+func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
+	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
+	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
+	coverURL, ok2 := doc.Find("meta[property='og:image']").Attr("content")
+	if !ok0 || !ok1 || !ok2 {
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, coverURL: %s", title, author, coverURL)
+	}
+
+	return &entity.NovelInfo{
+		NovelID:       *novelID,
+		Title:         fa.decoder.ConvertString(title),
+		Author:        fa.decoder.ConvertString(author),
+		CoverURL:      coverURL,
+		LastCrawlTime: time.Now(),
+	}, nil
+}
+
+// FetchChapterInfo export
+func (fa *FetcherAixdzs) FetchChapterInfo(doc *goquery.Document, title, url string) []entity.NovelChapter {
 	chapters := []entity.NovelChapter{}
 	doc.Find("div.catalog > ul > li.chapter > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Text()
@@ -77,21 +113,11 @@ func (fa *FetcherAixdzs) FetchNovelInfo(url *string) (*entity.Novel, error) {
 				URL:   chapterURL,
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
 		}
 	})
 
-	return &entity.Novel{
-		NovelID:       *id,
-		DNS:           *fa.dns,
-		Title:         fa.decoder.ConvertString(title),
-		Author:        fa.decoder.ConvertString(author),
-		Description:   fa.decoder.ConvertString(description),
-		URL:           *url,
-		Chapters:      chapters,
-		CoverURL:      coverURL,
-		LastCrawlTime: time.Now(),
-	}, nil
+	return chapters
 }
 
 // UpdateNovelInfo export
@@ -101,22 +127,23 @@ func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, er
 		return nil, docErr
 	}
 
-	chapters := []entity.NovelChapter{}
-	doc.Find("div.catalog > ul > li.chapter > a").Each(func(i int, s *goquery.Selection) {
-		chapterTitle := s.Text()
-		chapterURL, ok := s.Attr("href")
-		if ok {
-			chapters = append(chapters, entity.NovelChapter{
-				Title: fa.decoder.ConvertString(chapterTitle),
-				URL:   chapterURL,
-			})
-		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", novel.Title, novel.URL)
-		}
-	})
+	info, infoErr := fa.FetchNovelInfo(&novel.NovelID, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chaptersURL := strings.Replace(novel.URL, "/d/", "/read/", 1)
+	doc, docErr = fa.FetchDoc(&chaptersURL)
+	if docErr != nil {
+		return nil, docErr
+	}
+	chapters := fa.FetchChapterInfo(doc, info.Title, novel.URL)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
 
+	info.LastCrawlTime = time.Now()
+	novel.SetNovelInfo(info)
 	novel.Chapters = chapters
-	novel.LastCrawlTime = time.Now()
 	return novel, nil
 }
 
@@ -130,7 +157,7 @@ func (fa *FetcherAixdzs) FetchNovelChapter(novel *entity.Novel, index int) (*str
 	}
 
 	novelContent, _ := doc.Find("div.content").Html()
-	fmt.Println(novelContent)
+	logrus.Print(novelContent)
 	output += fa.decoder.ConvertString(novelContent)
 
 	return fa.Filter(&output), nil

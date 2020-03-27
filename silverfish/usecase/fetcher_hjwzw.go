@@ -2,13 +2,13 @@ package usecase
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	entity "silverfish/silverfish/entity"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 )
 
 // FetcherHjwzw export
@@ -45,62 +45,63 @@ func (fh *FetcherHjwzw) Filter(raw *string) *string {
 	return &str
 }
 
-// FetchNovelInfo export
-func (fh *FetcherHjwzw) FetchNovelInfo(url *string) (*entity.Novel, error) {
+// CrawlNovel export
+func (fh *FetcherHjwzw) CrawlNovel(url *string) (*entity.Novel, error) {
 	doc, docErr := fh.FetchDoc(url)
 	if docErr != nil {
 		return nil, docErr
 	}
 
 	id := fh.GenerateID(url)
-	title, ok0 := doc.Find("meta[property='og:novel:book_name']").Attr("content")
-	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
-	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
-	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
-	if !ok0 || !ok1 || !ok2 || !ok3 {
-		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
+	description, ok := doc.Find("meta[property='og:description']").Attr("content")
+	if !ok {
+		return nil, fmt.Errorf("Something missing, description: %s", description)
+	}
+
+	info, infoErr := fh.FetchNovelInfo(id, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
 	}
 	chapterURL := strings.Replace(*url, "Book", "Book/Chapter", 1)
 	doc, docErr = fh.FetchDoc(&chapterURL)
 	if docErr != nil {
 		return nil, docErr
 	}
+	chapters := fh.FetchChapterInfo(doc, info.Title, *url)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
 
-	chapters := []entity.NovelChapter{}
-	doc.Find("div#tbchapterlist > table > tbody > tr > td > a").Each(func(i int, s *goquery.Selection) {
-		chapterTitle := s.Text()
-		chapterURL, ok := s.Attr("href")
-		if ok {
-			chapters = append(chapters, entity.NovelChapter{
-				Title: chapterTitle,
-				URL:   chapterURL,
-			})
-		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
-		}
-	})
+	novel := &entity.Novel{
+		DNS:         *fh.dns,
+		Description: description,
+		URL:         *url,
+		Chapters:    chapters,
+	}
+	novel.SetNovelInfo(info)
+	return novel, nil
+}
 
-	return &entity.Novel{
-		NovelID:       *id,
-		DNS:           *fh.dns,
+// FetchNovelInfo export
+func (fh *FetcherHjwzw) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
+	title, ok0 := doc.Find("meta[property='og:novel:book_name']").Attr("content")
+	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
+	coverURL, ok2 := doc.Find("meta[property='og:image']").Attr("content")
+	if !ok0 || !ok1 || !ok2 {
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, coverURL: %s", title, author, coverURL)
+	}
+
+	return &entity.NovelInfo{
+		NovelID:       *novelID,
 		Title:         title,
 		Author:        author,
-		Description:   description,
-		URL:           *url,
-		Chapters:      chapters,
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
 	}, nil
 }
 
-// UpdateNovelInfo export
-func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error) {
-	chapterURL := strings.Replace(novel.URL, "Book", "Book/Chapter", 1)
-	doc, docErr := fh.FetchDoc(&chapterURL)
-	if docErr != nil {
-		return nil, docErr
-	}
-
+// FetchChapterInfo export
+func (fh *FetcherHjwzw) FetchChapterInfo(doc *goquery.Document, title, url string) []entity.NovelChapter {
 	chapters := []entity.NovelChapter{}
 	doc.Find("div#tbchapterlist > table > tbody > tr > td > a").Each(func(i int, s *goquery.Selection) {
 		chapterTitle := s.Text()
@@ -111,12 +112,37 @@ func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, err
 				URL:   chapterURL,
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", novel.Title, novel.URL)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
 		}
 	})
 
+	return chapters
+}
+
+// UpdateNovelInfo export
+func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error) {
+	doc, docErr := fh.FetchDoc(&novel.URL)
+	if docErr != nil {
+		return nil, docErr
+	}
+
+	info, infoErr := fh.FetchNovelInfo(&novel.NovelID, doc)
+	if infoErr != nil {
+		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
+	}
+	chapterURL := strings.Replace(novel.URL, "Book", "Book/Chapter", 1)
+	doc, docErr = fh.FetchDoc(&chapterURL)
+	if docErr != nil {
+		return nil, docErr
+	}
+	chapters := fh.FetchChapterInfo(doc, info.Title, novel.URL)
+	if len(chapters) == 0 {
+		logrus.Print("Chapters is empty. Strange...")
+	}
+
+	info.LastCrawlTime = time.Now()
+	novel.SetNovelInfo(info)
 	novel.Chapters = chapters
-	novel.LastCrawlTime = time.Now()
 	return novel, nil
 }
 

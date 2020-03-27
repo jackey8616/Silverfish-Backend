@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // FetcherCartoonmad export
@@ -70,7 +70,7 @@ func (fc *FetcherCartoonmad) FetchComicInfo(url *string) (*entity.Comic, error) 
 				ImageURL: []string{},
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", title, *url)
 		}
 	})
 	return &entity.Comic{
@@ -106,7 +106,7 @@ func (fc *FetcherCartoonmad) UpdateComicInfo(comic *entity.Comic) (*entity.Comic
 				ImageURL: []string{},
 			})
 		} else {
-			log.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
+			logrus.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
 		}
 	})
 
@@ -143,7 +143,7 @@ func (fc *FetcherCartoonmad) touchImage(refererURL, url *string) string {
 
 	res, err := cli.Do(req)
 	if err != nil {
-		log.Print(errors.Wrap(err, "When TouchImage"))
+		logrus.Print(errors.Wrap(err, "When TouchImage"))
 		return ""
 	}
 

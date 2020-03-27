@@ -74,7 +74,7 @@ func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
 			if novelURL != "" {
 				w.Header().Set("Content-Type", "application/json")
 
-				result, err := bpn.silverfish.GetNovelByURL(&novelURL)
+				result, err := bpn.silverfish.AddNovelByURL(&novelURL)
 				response = entity.NewAPIResponse(result, err)
 			} else {
 				response = entity.NewAPIResponse(nil, errors.New("Field novel_url should not be empty"))

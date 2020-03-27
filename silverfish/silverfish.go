@@ -2,7 +2,6 @@ package silverfish
 
 import (
 	"errors"
-	"log"
 	"strconv"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	interf "silverfish/silverfish/interface"
 	usecase "silverfish/silverfish/usecase"
 
+	"github.com/sirupsen/logrus"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -79,25 +79,25 @@ func (sf *Silverfish) GetNovelByID(novelID *string) (*entity.Novel, error) {
 		lastCrawlTime := novel.LastCrawlTime
 		novel, err = sf.novelFetchers[novel.DNS].UpdateNovelInfo(novel)
 		if err != nil {
-			log.Print(err.Error())
+			logrus.Print(err.Error())
 			return nil, err
 		}
 		sf.novelInf.Update(bson.M{"novelID": *novelID}, novel)
-		log.Printf("Updated novel <novel_id: %s, title: %s> since %s", novel.NovelID, novel.Title, lastCrawlTime)
+		logrus.Printf("Updated novel <novel_id: %s, title: %s> since %s", novel.NovelID, novel.Title, lastCrawlTime)
 	}
 
 	return novel, nil
 }
 
-// GetNovelByURL export
-func (sf *Silverfish) GetNovelByURL(novelURL *string) (*entity.Novel, error) {
+// AddNovelByURL export
+func (sf *Silverfish) AddNovelByURL(novelURL *string) (*entity.Novel, error) {
 	result, err := sf.novelInf.FindOne(bson.M{"novelURL": *novelURL}, &entity.Novel{})
 	if err != nil {
 		for _, v := range sf.novelFetchers {
 			if v.Match(novelURL) {
-				record, err := v.FetchNovelInfo(novelURL)
+				record, err := v.CrawlNovel(novelURL)
 				if err != nil {
-					log.Print(err.Error())
+					logrus.Print(err.Error())
 					return nil, err
 				}
 				sf.novelInf.Upsert(bson.M{"novelID": record.NovelID}, record)
@@ -149,11 +149,11 @@ func (sf *Silverfish) GetComicByID(comicID *string) (*entity.Comic, error) {
 		lastCrawlTime := comic.LastCrawlTime
 		comic, err = sf.comicFetchers[comic.DNS].UpdateComicInfo(comic)
 		if err != nil {
-			log.Print(err.Error())
+			logrus.Print(err.Error())
 			return nil, err
 		}
 		sf.comicInf.Update(bson.M{"comicID": *comicID}, comic)
-		log.Printf("Updated comic <comic_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
+		logrus.Printf("Updated comic <comic_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
 	}
 
 	return result.(*entity.Comic), nil
@@ -167,7 +167,7 @@ func (sf *Silverfish) GetComicByURL(comicURL *string) (*entity.Comic, error) {
 			if v.Match(comicURL) {
 				record, err := v.FetchComicInfo(comicURL)
 				if err != nil {
-					log.Print(err.Error())
+					logrus.Print(err.Error())
 					return nil, err
 				}
 				sf.comicInf.Upsert(bson.M{"comicID": record.ComicID}, record)
@@ -197,12 +197,12 @@ func (sf *Silverfish) GetComicChapter(comicID, chapterIndex *string) ([]string, 
 		if len(record.Chapters[index].ImageURL) == 0 {
 			imgURL, err := val.FetchComicChapter(record, index)
 			if err != nil {
-				log.Print(err.Error())
+				logrus.Print(err.Error())
 				return nil, err
 			}
 			record.Chapters[index].ImageURL = imgURL
 			sf.comicInf.Update(bson.M{"comicID": record.ComicID}, record)
-			log.Printf("Detect <comic:%s> chapter <index: %s/ title: %s> not crawl yet. Crawled.", record.Title, *chapterIndex, record.Chapters[index].Title)
+			logrus.Printf("Detect <comic:%s> chapter <index: %s/ title: %s> not crawl yet. Crawled.", record.Title, *chapterIndex, record.Chapters[index].Title)
 		}
 		return record.Chapters[index].ImageURL, nil
 	}

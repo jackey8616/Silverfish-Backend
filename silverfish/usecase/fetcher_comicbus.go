@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/robertkrimen/otto"
+	"github.com/sirupsen/logrus"
 )
 
 // FetcherComicbus export
@@ -67,7 +67,7 @@ func (fc *FetcherComicbus) FetchComicInfo(url *string) (*entity.Comic, error) {
 					ImageURL: []string{},
 				})
 			} else {
-				log.Printf("Chapter missing something, title: %s, url: %s", title, *url)
+				logrus.Printf("Chapter missing something, title: %s, url: %s", title, *url)
 			}
 		})
 	})
@@ -108,7 +108,7 @@ func (fc *FetcherComicbus) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, 
 					ImageURL: []string{},
 				})
 			} else {
-				log.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
+				logrus.Printf("Chapter missing something, title: %s, url: %s", comic.Title, comic.URL)
 			}
 		})
 	})

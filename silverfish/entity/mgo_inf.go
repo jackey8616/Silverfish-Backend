@@ -1,6 +1,8 @@
 package entity
 
-import "gopkg.in/mgo.v2"
+import (
+	"gopkg.in/mgo.v2"
+)
 
 // MongoInf export
 type MongoInf struct {
