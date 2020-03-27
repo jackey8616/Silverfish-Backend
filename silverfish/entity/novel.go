@@ -7,6 +7,7 @@ type NovelInfo struct {
 	NovelID       string    `json:"novelID" bson:"novelID"`
 	Title         string    `json:"title" bson:"title"`
 	Author        string    `json:"author" bson:"author"`
+	Description   string    `json:"description" bson:"description"`
 	CoverURL      string    `json:"coverUrl" bson:"coverUrl"`
 	LastCrawlTime time.Time `json:"lastCrawlTime" bson:"lastCrawlTime"`
 }

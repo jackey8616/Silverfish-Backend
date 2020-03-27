@@ -53,8 +53,6 @@ func (fb *FetcherBiquge) CrawlNovel(url *string) (*entity.Novel, error) {
 	}
 
 	id := fb.GenerateID(url)
-	description := doc.Find("div[id='intro']").Text()
-
 	info, infoErr := fb.FetchNovelInfo(id, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -65,10 +63,9 @@ func (fb *FetcherBiquge) CrawlNovel(url *string) (*entity.Novel, error) {
 	}
 
 	novel := &entity.Novel{
-		DNS:         *fb.dns,
-		Description: fb.decoder.ConvertString(description),
-		URL:         *url,
-		Chapters:    chapters,
+		DNS:      *fb.dns,
+		URL:      *url,
+		Chapters: chapters,
 	}
 	novel.SetNovelInfo(info)
 	return novel, nil
@@ -79,15 +76,17 @@ func (fb *FetcherBiquge) FetchNovelInfo(novelID *string, doc *goquery.Document) 
 	title := doc.Find("div[id='info'] > h1").Text()
 	author := doc.Find("div[id='info'] > p:nth-of-type(1)").Text()
 	author = strings.Split(author, "：")[1]
+	description := doc.Find("div[id='intro']").Text()
 	coverURL, ok := doc.Find("div[id='fmimg'] > img").Attr("src")
-	if title == "" || author == "" || !ok {
-		return nil, fmt.Errorf("Something missing, title: %s, author: %s, coverURL: %s", title, author, coverURL)
+	if title == "" || author == "" || description == "" || !ok {
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	return &entity.NovelInfo{
 		NovelID:       *novelID,
 		Title:         fb.decoder.ConvertString(title),
 		Author:        fb.decoder.ConvertString(author),
+		Description:   fb.decoder.ConvertString(description),
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
 	}, nil

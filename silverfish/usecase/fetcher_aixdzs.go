@@ -54,11 +54,6 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 	}
 
 	id := fa.GenerateID(url)
-	description, ok := doc.Find("meta[property='og:description']").Attr("content")
-	if !ok {
-		return nil, fmt.Errorf("Something missing, description: %s", description)
-	}
-
 	info, infoErr := fa.FetchNovelInfo(id, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -74,10 +69,9 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 	}
 
 	novel := &entity.Novel{
-		DNS:         *fa.dns,
-		Description: fa.decoder.ConvertString(description),
-		URL:         *url,
-		Chapters:    chapters,
+		DNS:      *fa.dns,
+		URL:      *url,
+		Chapters: chapters,
 	}
 	novel.SetNovelInfo(info)
 	return novel, nil
@@ -87,15 +81,17 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
 	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
 	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
-	coverURL, ok2 := doc.Find("meta[property='og:image']").Attr("content")
-	if !ok0 || !ok1 || !ok2 {
-		return nil, fmt.Errorf("Something missing, title: %s, author: %s, coverURL: %s", title, author, coverURL)
+	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
+	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
+	if !ok0 || !ok1 || !ok2 || !ok3 {
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
 	return &entity.NovelInfo{
 		NovelID:       *novelID,
 		Title:         fa.decoder.ConvertString(title),
 		Author:        fa.decoder.ConvertString(author),
+		Description:   fa.decoder.ConvertString(description),
 		CoverURL:      coverURL,
 		LastCrawlTime: time.Now(),
 	}, nil
