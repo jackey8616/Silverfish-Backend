@@ -51,7 +51,7 @@ func main() {
 	comicInf := entity.NewMongoInf(session, comicCol)
 	logrus.Print("... Collection Infrastructure inited.")
 
-	silverfishInstance := silverfish.New(config.HashSalt, userInf, novelInf, comicInf)
+	silverfishInstance := silverfish.New(config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf)
 	sessionUsecase := silverfish.NewSessionUsecase()
 	muxRouter := mux.NewRouter()
 	router := router.NewRouter(config.RecaptchaKey, silverfishInstance, sessionUsecase)

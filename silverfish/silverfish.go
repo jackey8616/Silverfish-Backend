@@ -16,6 +16,7 @@ import (
 // Silverfish export
 type Silverfish struct {
 	Auth          *Auth
+	crawlDuration int
 	novelInf      *entity.MongoInf
 	comicInf      *entity.MongoInf
 	novelFetchers map[string]interf.INovelFetcher
@@ -24,9 +25,10 @@ type Silverfish struct {
 }
 
 // New export
-func New(hashSalt *string, userInf, novelInf, comicInf *entity.MongoInf) *Silverfish {
+func New(hashSalt *string, crawlDuration int, userInf, novelInf, comicInf *entity.MongoInf) *Silverfish {
 	sf := new(Silverfish)
 	sf.Auth = NewAuth(hashSalt, userInf)
+	sf.crawlDuration = crawlDuration
 	sf.novelInf = novelInf
 	sf.comicInf = comicInf
 	sf.novelFetchers = map[string]interf.INovelFetcher{
@@ -75,7 +77,7 @@ func (sf *Silverfish) GetNovelByID(novelID *string) (*entity.Novel, error) {
 	}
 
 	novel := result.(*entity.Novel)
-	if time.Since(novel.LastCrawlTime).Hours() > 24 {
+	if time.Since(novel.LastCrawlTime).Minutes() > float64(sf.crawlDuration) {
 		lastCrawlTime := novel.LastCrawlTime
 		novel, err = sf.novelFetchers[novel.DNS].UpdateNovelInfo(novel)
 		if err != nil {

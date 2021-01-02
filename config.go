@@ -10,15 +10,16 @@ import (
 
 // Config export
 type Config struct {
-	Debug        bool     `json:"debug"`
-	SSL          bool     `json:"ssl"`
-	SSLPem       string   `json:"ssl_pem"`
-	SSLKey       string   `json:"ssl_key"`
-	Port         string   `json:"port"`
-	DbHost       *string  `json:"db_host"`
-	HashSalt     *string  `json:"hash_salt"`
-	RecaptchaKey *string  `json:"recaptcha_key"`
-	AllowOrigin  []string `json:"allow_origins"`
+	Debug         bool     `json:"debug"`
+	SSL           bool     `json:"ssl"`
+	SSLPem        string   `json:"ssl_pem"`
+	SSLKey        string   `json:"ssl_key"`
+	Port          string   `json:"port"`
+	DbHost        *string  `json:"db_host"`
+	HashSalt      *string  `json:"hash_salt"`
+	RecaptchaKey  *string  `json:"recaptcha_key"`
+	AllowOrigin   []string `json:"allow_origins"`
+	CrawlDuration int      `json:"crawl_duration"`
 }
 
 // NewConfig export
@@ -34,14 +35,15 @@ func NewConfig(path *string) *Config {
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	c := &Config{
-		Debug:       false,
-		SSL:         true,
-		SSLPem:      "./server.pem",
-		SSLKey:      "./server.key",
-		Port:        "8080",
-		DbHost:      &dbHost,
-		HashSalt:    &hashSalt,
-		AllowOrigin: []string{"https://silverfish.cc"},
+		Debug:         false,
+		SSL:           true,
+		SSLPem:        "./server.pem",
+		SSLKey:        "./server.key",
+		Port:          "8080",
+		DbHost:        &dbHost,
+		HashSalt:      &hashSalt,
+		AllowOrigin:   []string{"https://silverfish.cc"},
+		CrawlDuration: 60,
 	}
 	logrus.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
