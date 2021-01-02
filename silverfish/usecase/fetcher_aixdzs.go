@@ -153,7 +153,6 @@ func (fa *FetcherAixdzs) FetchNovelChapter(novel *entity.Novel, index int) (*str
 	}
 
 	novelContent, _ := doc.Find("div.content").Html()
-	logrus.Print(novelContent)
 	output += fa.decoder.ConvertString(novelContent)
 
 	return fa.Filter(&output), nil
