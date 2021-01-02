@@ -7,19 +7,21 @@ services:
       - "../mongo-data:/data/db"
     restart: unless-stopped
 
-  mongo-express:
-    image: mongo-express
-    links:
+  mongo-admin:
+    image: mrvautin/adminmongo
+    environment:
+      - HOST=0.0.0.0
+    depends_on:
       - mongo
     ports:
-      - "27018:8081"
+      - 27018:1234
 
   backend:
     build:
       context: ../
       dockerfile: Dockerfile
     volumes:
-    - "../config.json:/config.json:ro"
+      - "../config.json:/config.json:ro"
     ports:
       - "2087:8080"
     restart: unless-stopped
