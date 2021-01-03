@@ -68,6 +68,7 @@ func (fc *FetcherCartoonmad) FetchComicInfo(comicID *string, doc *goquery.Docume
 	title, err0 := doc.Find("meta[name='Keywords']").Attr("content")
 	title = strings.Split(title, ",")[0]
 	author := anchor.Find("table > tbody > tr:nth-of-type(4) > td").Text()
+	logrus.Println(author)
 	author = strings.Split(author, "作者：")[1]
 	author = strings.Split(author, "‧")[0]
 
@@ -140,10 +141,9 @@ func (fc *FetcherCartoonmad) FetchComicChapter(comic *entity.Comic, index int) (
 		return nil, docErr
 	}
 
-	lastIndex, _ := strconv.Atoi(doc.Find("table > tbody > tr:nth-of-type(6) > td > a:nth-last-of-type(2)").Text())
-	partImageURL, _ := doc.Find("table > tbody > tr:nth-of-type(5) > td > table > tbody > tr > td > a > img").Attr("src")
-	imageURL := fc.GetChapterURL(comic, "/comic/"+partImageURL)
-	touchedURL := fc.touchImage(url, imageURL)
+	lastIndex, _ := strconv.Atoi(doc.Find("table > tbody > tr:nth-of-type(5) > td > a:nth-last-of-type(2)").Text())
+	imageURL, _ := doc.Find("table > tbody > tr:nth-of-type(4) > td > table > tbody > tr > td > a > img").Attr("src")
+	touchedURL := fc.touchImage(url, &imageURL)
 
 	for i := 1; i <= lastIndex; i++ {
 		comicURLs = append(comicURLs, fmt.Sprintf("%s/%03d.jpg", touchedURL, i))
