@@ -10,7 +10,6 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gravityblast/go-base62 v0.0.0-20131214171223-d5f2747573ce // indirect
 	github.com/kenshaw/baseconv v0.0.0-20180401001559-5ac6a1b7584c
-	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lytics/base62 v0.0.0-20180808010106-0ee4de5a5d6d // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
@@ -21,4 +20,5 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect
+	honnef.co/go/tools v0.1.0 // indirect
 )
