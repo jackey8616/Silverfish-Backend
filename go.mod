@@ -6,6 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394
 	github.com/djimenez/iconv-go v0.0.0-20160305225143-8960e66bd3da
+	github.com/go-rod/rod v0.88.2
 	github.com/gorilla/handlers v1.4.2 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/gravityblast/go-base62 v0.0.0-20131214171223-d5f2747573ce // indirect
