@@ -15,6 +15,7 @@ type IBlueprint interface {
 type IBlueprintAPI interface {
 	IBlueprint
 	GetVersion() string
+	Remove(http.ResponseWriter, *http.Request)
 }
 
 // IBlueprintComic export

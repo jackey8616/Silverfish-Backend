@@ -62,6 +62,7 @@ func main() {
 	handler := cors.New(cors.Options{
 		AllowedOrigins:   config.AllowOrigin,
 		AllowedHeaders:   []string{"Authorization"},
+		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
 		AllowCredentials: false,
 		Debug:            config.Debug,
 	}).Handler(muxRouter)

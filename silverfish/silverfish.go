@@ -2,6 +2,7 @@ package silverfish
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -92,6 +93,27 @@ func (sf *Silverfish) GetNovelByID(novelID *string) (*entity.Novel, error) {
 	return novel, nil
 }
 
+// RemoveNovelByID export
+func (sf *Silverfish) RemoveNovelByID(novelID *string) error {
+	err := sf.novelInf.Remove(bson.M{"novelID": *novelID})
+	if err != nil {
+		return err
+	}
+	err = sf.Auth.userInf.Update(bson.M{
+		fmt.Sprintf(`bookmark.novel.%s`, *novelID): bson.M{
+			"$exists": true,
+		},
+	}, bson.M{
+		"$unset": bson.M{
+			fmt.Sprintf(`bookmark.novel.%s`, *novelID): "",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // AddNovelByURL export
 func (sf *Silverfish) AddNovelByURL(novelURL *string) (*entity.Novel, error) {
 	result, err := sf.novelInf.FindOne(bson.M{"novelURL": *novelURL}, &entity.Novel{})
@@ -162,8 +184,29 @@ func (sf *Silverfish) GetComicByID(comicID *string) (*entity.Comic, error) {
 	return result.(*entity.Comic), nil
 }
 
-// GetComicByURL export
-func (sf *Silverfish) GetComicByURL(comicURL *string) (*entity.Comic, error) {
+// RemoveComicByID export
+func (sf *Silverfish) RemoveComicByID(comicID *string) error {
+	err := sf.comicInf.Remove(bson.M{"comicID": *comicID})
+	if err != nil {
+		return err
+	}
+	err = sf.Auth.userInf.Update(bson.M{
+		fmt.Sprintf(`bookmark.comic.%s`, *comicID): bson.M{
+			"$exists": true,
+		},
+	}, bson.M{
+		"$unset": bson.M{
+			fmt.Sprintf(`bookmark.comic.%s`, *comicID): "",
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// AddComicByURL export
+func (sf *Silverfish) AddComicByURL(comicURL *string) (*entity.Comic, error) {
 	result, err := sf.comicInf.FindOne(bson.M{"comicURL": *comicURL}, &entity.Comic{})
 	if err != nil {
 		for _, v := range sf.comicFetchers {

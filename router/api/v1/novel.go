@@ -34,6 +34,7 @@ func (bpn *BlueprintNovelv1) RouteRegister(parentRouter *mux.Router) {
 	router := parentRouter.PathPrefix(bpn.route).Subrouter()
 	router.HandleFunc("", bpn.novel).Methods("GET", "POST")
 	router.HandleFunc("/", bpn.novel).Methods("GET", "POST")
+	router.HandleFunc("/{novelID}", bpn.deleteNovel).Methods("DELETE")
 	/* TODO: route should be /api/v1/novel/chapter
 	This change will need to update Frontend's api calling. */
 	parentRouter.HandleFunc("/chapter", bpn.chapter).Methods("GET")
@@ -42,6 +43,7 @@ func (bpn *BlueprintNovelv1) RouteRegister(parentRouter *mux.Router) {
 	sRouter := parentRouter.PathPrefix(bpn.route + "s").Subrouter()
 	sRouter.HandleFunc("", bpn.listNovel).Methods("GET")
 	sRouter.HandleFunc("/", bpn.listNovel).Methods("GET")
+	sRouter.HandleFunc("/{novelID}", bpn.deleteNovel).Methods("DELETE")
 	sRouter.HandleFunc("/chapter", bpn.chapter).Methods("GET")
 }
 
@@ -78,6 +80,36 @@ func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
 				response = entity.NewAPIResponse(result, err)
 			} else {
 				response = entity.NewAPIResponse(nil, errors.New("Field novel_url should not be empty"))
+			}
+		}
+		js, _ := json.Marshal(response)
+		w.Write(js)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func (bpn *BlueprintNovelv1) deleteNovel(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodDelete:
+		sessionToken := r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+
+		session, err := bpn.sessionUsecase.GetSession(&sessionToken)
+		response := new(entity.APIResponse)
+		if err != nil {
+			response = entity.NewAPIResponse(nil, err)
+		} else if isAdmin, _ := bpn.auth.IsAdmin(session.GetAccount()); isAdmin == false {
+			response = entity.NewAPIResponse(nil, errors.New("Only Admin allowed"))
+		} else {
+			params := mux.Vars(r)
+			novelID := params["novelID"]
+
+			if novelID != "" {
+				err := bpn.silverfish.RemoveNovelByID(&novelID)
+				response = entity.NewAPIResponse(nil, err)
+			} else {
+				response = entity.NewAPIResponse(nil, errors.New("Field novel_id should not be empty"))
 			}
 		}
 		js, _ := json.Marshal(response)
