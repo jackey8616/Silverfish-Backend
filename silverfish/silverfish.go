@@ -108,7 +108,7 @@ func (sf *Silverfish) RemoveNovelByID(novelID *string) error {
 			fmt.Sprintf(`bookmark.novel.%s`, *novelID): "",
 		},
 	})
-	if err != nil {
+	if err != nil && err.Error() != "not found" {
 		return err
 	}
 	return nil
@@ -199,7 +199,7 @@ func (sf *Silverfish) RemoveComicByID(comicID *string) error {
 			fmt.Sprintf(`bookmark.comic.%s`, *comicID): "",
 		},
 	})
-	if err != nil {
+	if err != nil && err.Error() != "not found" {
 		return err
 	}
 	return nil
