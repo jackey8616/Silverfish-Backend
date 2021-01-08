@@ -89,11 +89,13 @@ func (fm *FetcherMangabz) FetchChapterInfo(doc *goquery.Document, cookie []*http
 		chapterTitle := s.Text()
 		chapterURL, ok := s.Attr("href")
 		if ok {
-			chapters = append(chapters, entity.ComicChapter{
-				Title:    chapterTitle,
-				URL:      chapterURL,
-				ImageURL: []string{},
-			})
+			chapters = append([]entity.ComicChapter{
+				entity.ComicChapter{
+					Title:    chapterTitle,
+					URL:      chapterURL,
+					ImageURL: []string{},
+				},
+			}, chapters...)
 		} else {
 			logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
 		}
