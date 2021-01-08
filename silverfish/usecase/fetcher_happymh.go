@@ -130,7 +130,10 @@ func (fh *FetcherHappymh) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 // FetchComicChapter export
 func (fh *FetcherHappymh) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
-	page := rod.New().MustConnect().MustPage(comic.Chapters[index].URL)
+	browser := rod.New()
+	defer browser.MustClose()
+
+	page := browser.MustConnect().MustPage(comic.Chapters[index].URL)
 	page.Race().Element("div#iframeContainer_0").MustHandle(func(e *rod.Element) {
 		imgJSONs := page.MustEval("JSON.parse(ReadJs.dct('c1zbnttrabim', ss))").Arr()
 		for i := 0; i < len(imgJSONs); i++ {
