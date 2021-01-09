@@ -46,6 +46,7 @@ func New(hashSalt *string, crawlDuration int, userInf, novelInf, comicInf *entit
 		"www.manhuaniu.com":  usecase.NewFetcherManhuaniu("www.manhuaniu.com"),
 		"www.mangabz.com":    usecase.NewFetcherMangabz("www.mangabz.com"),
 		"m.happymh.com":      usecase.NewFetcherHappymh("m.happymh.com"),
+		"www.mfhmh.com":      usecase.NewFetcherMfhmh("www.mfhmh.com"), // Oops...
 	}
 	return sf
 }
@@ -66,8 +67,12 @@ func (sf *Silverfish) GetLists() map[string][]string {
 }
 
 // GetNovels export
-func (sf *Silverfish) GetNovels() (*[]entity.NovelInfo, error) {
-	result, err := sf.novelInf.FindSelectAll(nil, bson.M{
+func (sf *Silverfish) GetNovels(shouldFetchDisable bool) (*[]entity.NovelInfo, error) {
+	selector := bson.M{"isEnable": true}
+	if shouldFetchDisable {
+		selector = nil
+	}
+	result, err := sf.novelInf.FindSelectAll(selector, bson.M{
 		"novelID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
 	return result.(*[]entity.NovelInfo), err
 }
@@ -157,8 +162,12 @@ func (sf *Silverfish) GetNovelChapter(novelID, chapterIndex *string) (*string, e
 }
 
 // GetComics export
-func (sf *Silverfish) GetComics() (*[]entity.ComicInfo, error) {
-	result, err := sf.comicInf.FindSelectAll(nil, bson.M{
+func (sf *Silverfish) GetComics(shouldFetchDisable bool) (*[]entity.ComicInfo, error) {
+	selector := bson.M{"isEnable": true}
+	if shouldFetchDisable == true {
+		selector = nil
+	}
+	result, err := sf.comicInf.FindSelectAll(selector, bson.M{
 		"comicID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
 	return result.(*[]entity.ComicInfo), err
 }

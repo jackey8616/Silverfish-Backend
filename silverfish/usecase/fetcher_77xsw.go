@@ -92,6 +92,7 @@ func (f7 *Fetcher77xsw) FetchNovelInfo(novelID *string, doc *goquery.Document) (
 	}
 
 	return &entity.NovelInfo{
+		IsEnable:      true,
 		NovelID:       *novelID,
 		Title:         f7.decoder.ConvertString(title),
 		Author:        f7.decoder.ConvertString(author),

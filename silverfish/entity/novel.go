@@ -4,18 +4,13 @@ import "time"
 
 // NovelInfo export
 type NovelInfo struct {
+	IsEnable      bool      `json:"isEnable" bson:"isEnable"`
 	NovelID       string    `json:"novelID" bson:"novelID"`
 	Title         string    `json:"title" bson:"title"`
 	Author        string    `json:"author" bson:"author"`
 	Description   string    `json:"description" bson:"description"`
 	CoverURL      string    `json:"coverUrl" bson:"coverUrl"`
 	LastCrawlTime time.Time `json:"lastCrawlTime" bson:"lastCrawlTime"`
-}
-
-// NovelChapter export
-type NovelChapter struct {
-	Title string `json:"title" bson:"title"`
-	URL   string `json:"url" bson:"url"`
 }
 
 // Novel export
@@ -29,6 +24,12 @@ type Novel struct {
 	CoverURL      string         `json:"coverUrl" bson:"coverUrl"`
 	Chapters      []NovelChapter `json:"chapters" bson:"chapters"`
 	LastCrawlTime time.Time      `json:"lastCrawlTime" bson:"lastCrawlTime"`
+}
+
+// NovelChapter export
+type NovelChapter struct {
+	Title string `json:"title" bson:"title"`
+	URL   string `json:"url" bson:"url"`
 }
 
 // GetNovelInfo export

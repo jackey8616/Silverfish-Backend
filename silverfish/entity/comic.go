@@ -4,6 +4,7 @@ import "time"
 
 // ComicInfo export
 type ComicInfo struct {
+	IsEnable      bool      `json:"isEnable" bson:"isEnable"`
 	ComicID       string    `json:"comicID" bson:"comicID"`
 	Title         string    `json:"title" bson:"title"`
 	Author        string    `json:"author" bson:"author"`

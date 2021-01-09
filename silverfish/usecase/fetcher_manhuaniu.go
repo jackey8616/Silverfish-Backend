@@ -71,6 +71,7 @@ func (fm *FetcherManhuaniu) FetchComicInfo(comicID *string, doc *goquery.Documen
 	}
 
 	return &entity.ComicInfo{
+		IsEnable:      true,
 		ComicID:       *comicID,
 		Title:         title,
 		Author:        author,

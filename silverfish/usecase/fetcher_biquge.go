@@ -83,6 +83,7 @@ func (fb *FetcherBiquge) FetchNovelInfo(novelID *string, doc *goquery.Document) 
 	}
 
 	return &entity.NovelInfo{
+		IsEnable:      true,
 		NovelID:       *novelID,
 		Title:         fb.decoder.ConvertString(title),
 		Author:        fb.decoder.ConvertString(author),

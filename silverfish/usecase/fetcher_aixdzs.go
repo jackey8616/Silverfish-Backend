@@ -88,6 +88,7 @@ func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) 
 	}
 
 	return &entity.NovelInfo{
+		IsEnable:      true,
 		NovelID:       *novelID,
 		Title:         fa.decoder.ConvertString(title),
 		Author:        fa.decoder.ConvertString(author),

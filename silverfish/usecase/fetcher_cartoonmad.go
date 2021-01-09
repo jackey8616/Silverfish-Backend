@@ -80,6 +80,7 @@ func (fc *FetcherCartoonmad) FetchComicInfo(comicID *string, doc *goquery.Docume
 	}
 
 	return &entity.ComicInfo{
+		IsEnable:      true,
 		ComicID:       *comicID,
 		Title:         title,
 		Author:        author,

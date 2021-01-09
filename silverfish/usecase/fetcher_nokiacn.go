@@ -71,6 +71,7 @@ func (fn *FetcherNokiacn) FetchComicInfo(comicID *string, doc *goquery.Document,
 	}
 
 	return &entity.ComicInfo{
+		IsEnable:      true,
 		ComicID:       *comicID,
 		Title:         title,
 		Author:        author,

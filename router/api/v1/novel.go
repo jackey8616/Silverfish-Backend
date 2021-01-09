@@ -123,8 +123,18 @@ func (bpn *BlueprintNovelv1) listNovel(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
+		shouldFetchDisable := false
+		sessionToken := r.Header.Get("Authorization")
+		if sessionToken != "" {
+			session, _ := bpn.sessionUsecase.GetSession(&sessionToken)
+			if session == nil {
+				shouldFetchDisable = false
+			} else if isAdmin, _ := bpn.auth.IsAdmin(session.GetAccount()); isAdmin == true {
+				shouldFetchDisable = true
+			}
+		}
 
-		result, err := bpn.silverfish.GetNovels()
+		result, err := bpn.silverfish.GetNovels(shouldFetchDisable)
 		response := entity.NewAPIResponse(result, err)
 		js, _ := json.Marshal(response)
 		w.Write(js)

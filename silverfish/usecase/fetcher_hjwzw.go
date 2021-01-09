@@ -87,6 +87,7 @@ func (fh *FetcherHjwzw) FetchNovelInfo(novelID *string, doc *goquery.Document) (
 	}
 
 	return &entity.NovelInfo{
+		IsEnable:      true,
 		NovelID:       *novelID,
 		Title:         title,
 		Author:        author,
