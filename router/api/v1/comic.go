@@ -65,7 +65,7 @@ func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
 			response := new(entity.APIResponse)
 			result, err := bpc.silverfish.GetComicByID(&comicID)
 			if (err != nil && err.Error() == "not found") ||
-				(result != nil && !result.GetComicInfo().IsEnable && !isAdmin) {
+				(result != nil && !result.IsEnable && !isAdmin) {
 				w.WriteHeader(http.StatusNotFound)
 			} else {
 				response = entity.NewAPIResponse(result, err)

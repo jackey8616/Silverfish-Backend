@@ -15,6 +15,7 @@ type ComicInfo struct {
 
 // Comic export
 type Comic struct {
+	IsEnable      bool           `json:"isEnable" bson:"isEnable"`
 	ComicID       string         `json:"comicID" bson:"comicID"`
 	DNS           string         `json:"dns" bson:"dns"`
 	Title         string         `json:"title" bson:"title"`
@@ -36,6 +37,7 @@ type ComicChapter struct {
 // GetComicInfo export
 func (comic *Comic) GetComicInfo() *ComicInfo {
 	return &ComicInfo{
+		IsEnable:      comic.IsEnable,
 		ComicID:       comic.ComicID,
 		Title:         comic.Title,
 		Author:        comic.Author,
@@ -47,6 +49,7 @@ func (comic *Comic) GetComicInfo() *ComicInfo {
 
 // SetComicInfo export
 func (comic *Comic) SetComicInfo(info *ComicInfo) {
+	comic.IsEnable = info.IsEnable
 	comic.ComicID = info.ComicID
 	comic.Title = info.Title
 	comic.Author = info.Author

@@ -15,6 +15,7 @@ type NovelInfo struct {
 
 // Novel export
 type Novel struct {
+	IsEnable      bool           `json:"isEnable" bson:"isEnable"`
 	NovelID       string         `json:"novelID" bson:"novelID"`
 	DNS           string         `json:"dns" bson:"dns"`
 	Title         string         `json:"title" bson:"title"`
@@ -35,6 +36,7 @@ type NovelChapter struct {
 // GetNovelInfo export
 func (novel *Novel) GetNovelInfo() *NovelInfo {
 	return &NovelInfo{
+		IsEnable:      novel.IsEnable,
 		NovelID:       novel.NovelID,
 		Title:         novel.Title,
 		Author:        novel.Author,
@@ -45,6 +47,7 @@ func (novel *Novel) GetNovelInfo() *NovelInfo {
 
 // SetNovelInfo export
 func (novel *Novel) SetNovelInfo(info *NovelInfo) {
+	novel.IsEnable = info.IsEnable
 	novel.NovelID = info.NovelID
 	novel.Title = info.Title
 	novel.Author = info.Author

@@ -68,7 +68,7 @@ func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
 			response := new(entity.APIResponse)
 			result, err := bpn.silverfish.GetNovelByID(&novelID)
 			if (err != nil && err.Error() == "not found") ||
-				(result != nil && !result.GetNovelInfo().IsEnable && !isAdmin) {
+				(result != nil && !result.IsEnable && !isAdmin) {
 				w.WriteHeader(http.StatusNotFound)
 			} else {
 				response = entity.NewAPIResponse(result, err)
