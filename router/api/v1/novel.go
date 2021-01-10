@@ -48,28 +48,41 @@ func (bpn *BlueprintNovelv1) RouteRegister(parentRouter *mux.Router) {
 }
 
 func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
+	isAdmin := false
+	sessionToken := r.Header.Get("Authorization")
+	if sessionToken != "" {
+		session, err := bpn.sessionUsecase.GetSession(&sessionToken)
+		if err != nil {
+			isAdmin = false
+		} else if accountIsAdmin, _ := bpn.auth.IsAdmin(session.GetAccount()); accountIsAdmin == true {
+			isAdmin = true
+		}
+	}
+
 	switch r.Method {
 	case http.MethodGet:
 		novelID := r.URL.Query().Get("novel_id")
 		if novelID != "" {
 			w.Header().Set("Content-Type", "application/json")
 
+			response := new(entity.APIResponse)
 			result, err := bpn.silverfish.GetNovelByID(&novelID)
-			response := entity.NewAPIResponse(result, err)
+			if (err != nil && err.Error() == "not found") ||
+				(result != nil && !result.GetNovelInfo().IsEnable && !isAdmin) {
+				w.WriteHeader(http.StatusNotFound)
+			} else {
+				response = entity.NewAPIResponse(result, err)
+			}
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 		}
 	case http.MethodPost:
-		sessionToken := r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "application/json")
 
-		session, err := bpn.sessionUsecase.GetSession(&sessionToken)
 		response := new(entity.APIResponse)
-		if err != nil {
-			response = entity.NewAPIResponse(nil, err)
-		} else if isAdmin, _ := bpn.auth.IsAdmin(session.GetAccount()); isAdmin == false {
+		if !isAdmin {
 			response = entity.NewAPIResponse(nil, errors.New("Only Admin allowed"))
 		} else {
 			novelURL := r.FormValue("novel_url")

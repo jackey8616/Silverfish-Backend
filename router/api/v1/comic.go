@@ -45,28 +45,41 @@ func (bpc *BlueprintComicv1) RouteRegister(parentRouter *mux.Router) {
 }
 
 func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
+	isAdmin := false
+	sessionToken := r.Header.Get("Authorization")
+	if sessionToken != "" {
+		session, err := bpc.sessionUsecase.GetSession(&sessionToken)
+		if err != nil {
+			isAdmin = false
+		} else if accountIsAdmin, _ := bpc.auth.IsAdmin(session.GetAccount()); accountIsAdmin == true {
+			isAdmin = true
+		}
+	}
+
 	switch r.Method {
 	case http.MethodGet:
 		comicID := r.URL.Query().Get("comic_id")
 		if comicID != "" {
 			w.Header().Set("Content-Type", "application/json")
 
+			response := new(entity.APIResponse)
 			result, err := bpc.silverfish.GetComicByID(&comicID)
-			response := entity.NewAPIResponse(result, err)
+			if (err != nil && err.Error() == "not found") ||
+				(result != nil && !result.GetComicInfo().IsEnable && !isAdmin) {
+				w.WriteHeader(http.StatusNotFound)
+			} else {
+				response = entity.NewAPIResponse(result, err)
+			}
 			js, _ := json.Marshal(response)
 			w.Write(js)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 		}
 	case http.MethodPost:
-		sessionToken := r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "application/json")
 
-		session, err := bpc.sessionUsecase.GetSession(&sessionToken)
 		response := new(entity.APIResponse)
-		if err != nil {
-			response = entity.NewAPIResponse(nil, err)
-		} else if isAdmin, _ := bpc.auth.IsAdmin(session.GetAccount()); isAdmin == false {
+		if !isAdmin {
 			response = entity.NewAPIResponse(nil, errors.New("Only Admin allowed"))
 		} else {
 			comicURL := r.FormValue("comic_url")
