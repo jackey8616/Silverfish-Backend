@@ -3,6 +3,7 @@ package usecase
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -138,10 +139,12 @@ func (fm *FetcherMfhmh) FetchComicChapter(comic *entity.Comic, index int) ([]str
 	page.SetUserAgent(&proto.NetworkSetUserAgentOverride{
 		UserAgent: "iPhone",
 	})
+	widthExp, _ := regexp.Compile(`width: .*?;`)
 	page.Race().Element("div#cp_img").MustHandle(func(e *rod.Element) {
 		eles, _ := e.Elements("img")
 		for i := 0; i < len(eles); i++ {
-			comicURLs = append(comicURLs, *eles[i].MustAttribute("data-original"))
+			width := widthExp.FindString(*eles[i].MustAttribute("style"))
+			comicURLs = append(comicURLs, *eles[i].MustAttribute("data-original")+"?"+width[7:len(width)-2]+"%")
 		}
 	}).MustDo()
 	return comicURLs, nil
