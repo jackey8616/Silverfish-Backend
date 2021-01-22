@@ -79,11 +79,11 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 
 // FetchNovelInfo export
 func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
-	title, ok0 := doc.Find("meta[property='og:title']").Attr("content")
-	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
-	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
-	coverURL, ok3 := doc.Find("meta[property='og:image']").Attr("content")
-	if !ok0 || !ok1 || !ok2 || !ok3 {
+	title := strings.Replace(doc.Find("div.d_info > h1").Text(), "下載", "", 1)
+	author := doc.Find("div.d_ac.fdl > ul > li:nth-of-type(1) > a").Text()
+	description := doc.Find("div.d_co").Text()
+	coverURL, ok := doc.Find("div.d_af.fdl > img").Attr("src")
+	if title == "" || author == "" || description == "" || !ok {
 		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
 	}
 
