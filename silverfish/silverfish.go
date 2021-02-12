@@ -37,6 +37,7 @@ func New(hashSalt *string, crawlDuration int, userInf, novelInf, comicInf *entit
 		"tw.hjwzw.com":      usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"www.biquge.com.cn": usecase.NewFetcherBiquge("www.biquge.com.cn"),
 		"tw.aixdzs.com":     usecase.NewFetcherAixdzs("tw.aixdzs.com"),
+		"www.bookbl.com":    usecase.NewFetcherBookbl("www.bookbl.com"),
 	}
 	sf.comicFetchers = map[string]interf.IComicFetcher{
 		//"www.99comic.co":     usecase.NewFetcher99Comic("www.99comic.co"),
