@@ -47,7 +47,8 @@ func New(hashSalt *string, crawlDuration int, userInf, novelInf, comicInf *entit
 		"www.manhuaniu.com":  usecase.NewFetcherManhuaniu("www.manhuaniu.com"),
 		"www.mangabz.com":    usecase.NewFetcherMangabz("www.mangabz.com"),
 		"m.happymh.com":      usecase.NewFetcherHappymh("m.happymh.com"),
-		"www.mfhmh.com":      usecase.NewFetcherMfhmh("www.mfhmh.com"), // Oops...
+		"www.mfhmh.com":      usecase.NewFetcherMfhmh("www.mfhmh.com"),     // Oops...
+		"www.ikanwzd.top":    usecase.NewFetcherIkanwzd("www.ikanwzd.top"), // Oops...
 	}
 	return sf
 }
