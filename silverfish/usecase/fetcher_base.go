@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"crypto/md5"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -41,7 +42,21 @@ func (f *Fetcher) Match(url *string) bool {
 
 // FetchDoc export
 func (f *Fetcher) FetchDoc(url *string) (*goquery.Document, error) {
-	doc, err := goquery.NewDocument(*url)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{
+		Transport: tr,
+	}
+
+	res, err := client.Get(*url)
+	if err != nil {
+		return nil, errors.Wrap(err, "When FetchDoc client.Get")
+	}
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "When FetchDoc")
 	}
@@ -50,9 +65,17 @@ func (f *Fetcher) FetchDoc(url *string) (*goquery.Document, error) {
 
 // FetchDocWithEncoding export
 func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Document, []*http.Cookie, error) {
-	res, err := http.Get(*url)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := &http.Client{
+		Transport: tr,
+	}
+
+	res, err := client.Get(*url)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "When Get")
+		return nil, nil, errors.Wrap(err, "When FetchDocWithEncoding client.Get")
 	}
 	defer res.Body.Close()
 
@@ -60,7 +83,7 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Do
 	// `charset` being one of the charsets known by the iconv package.
 	utfBody, err := iconv.NewReader(res.Body, charset, "utf-8")
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "When Convert UTF-8")
+		return nil, nil, errors.Wrap(err, "When FetchDocWithEncoding Convert UTF-8")
 	}
 
 	// use utfBody using goquery
