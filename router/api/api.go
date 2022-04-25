@@ -12,35 +12,36 @@ import (
 
 // BlueprintAPI export
 type BlueprintAPI struct {
-	silverfish     *silverfish.Silverfish
-	auth           *silverfish.Auth
-	sessionUsecase *silverfish.SessionUsecase
-	route          string
-	v1             *v1.BlueprintAPIv1
+	auth  *silverfish.Auth
+	route string
+	v1    *v1.BlueprintAPIv1
 }
 
 // NewBlueprintAPI export
-func NewBlueprintAPI(silverfish *silverfish.Silverfish, router interf.IRouter, sessionUsecase *silverfish.SessionUsecase) *BlueprintAPI {
+func NewBlueprintAPI(
+	auth *silverfish.Auth,
+	user *silverfish.User,
+	novel *silverfish.Novel,
+	comic *silverfish.Comic,
+	router interf.IRouter,
+) *BlueprintAPI {
 	ba := new(BlueprintAPI)
-	ba.silverfish = silverfish
-	ba.auth = silverfish.Auth
-	ba.sessionUsecase = sessionUsecase
+	ba.auth = auth
 	ba.route = "/api"
-	ba.v1 = v1.NewBlueprintAPIv1(silverfish, sessionUsecase)
+	ba.v1 = v1.NewBlueprintAPIv1(auth, user, novel, comic)
 	return ba
 }
 
 // RouteRegister export
 func (ba *BlueprintAPI) RouteRegister(parentRouter *mux.Router) {
 	router := parentRouter.PathPrefix(ba.route).Subrouter()
-	router.HandleFunc("", ba.Root)
-	router.HandleFunc("/", ba.Root)
+	router.HandleFunc("", ba.root)
+	router.HandleFunc("/", ba.root)
 
 	ba.v1.RouteRegister(router)
 }
 
-// Root export
-func (ba *BlueprintAPI) Root(w http.ResponseWriter, r *http.Request) {
+func (ba *BlueprintAPI) root(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	js, _ := json.Marshal(map[string]bool{
 		"v1":      true,

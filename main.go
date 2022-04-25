@@ -52,9 +52,15 @@ func main() {
 	logrus.Print("... Collection Infrastructure inited.")
 
 	silverfishInstance := silverfish.New(config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf)
-	sessionUsecase := silverfish.NewSessionUsecase()
 	muxRouter := mux.NewRouter()
-	router := router.NewRouter(config.RecaptchaKey, silverfishInstance, sessionUsecase)
+	router := router.NewRouter(
+		config.RecaptchaKey,
+		silverfishInstance.Auth,
+		silverfishInstance.Admin,
+		silverfishInstance.User,
+		silverfishInstance.Novel,
+		silverfishInstance.Comic,
+	)
 	logrus.Print("... Http Router inited.")
 	router.RouteRegister(muxRouter)
 	logrus.Print("... Http Router registered.")

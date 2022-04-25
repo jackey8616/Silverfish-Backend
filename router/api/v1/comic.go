@@ -13,18 +13,23 @@ import (
 
 // BlueprintComicv1 export
 type BlueprintComicv1 struct {
-	silverfish     *silverfish.Silverfish
-	auth           *silverfish.Auth
-	sessionUsecase *silverfish.SessionUsecase
-	route          string
+	auth  *silverfish.Auth
+	user  *silverfish.User
+	comic *silverfish.Comic
+	route string
 }
 
 // NewBlueprintComicv1 export
-func NewBlueprintComicv1(silverfish *silverfish.Silverfish, sessionUsecase *silverfish.SessionUsecase) *BlueprintComicv1 {
+func NewBlueprintComicv1(
+	auth *silverfish.Auth,
+	user *silverfish.User,
+	comic *silverfish.Comic,
+) *BlueprintComicv1 {
 	bpc := new(BlueprintComicv1)
-	bpc.silverfish = silverfish
-	bpc.auth = silverfish.Auth
-	bpc.sessionUsecase = sessionUsecase
+	bpc.auth = auth
+	bpc.user = user
+	bpc.comic = comic
+	bpc.auth = auth
 	bpc.route = "/comic"
 	return bpc
 }
@@ -32,8 +37,8 @@ func NewBlueprintComicv1(silverfish *silverfish.Silverfish, sessionUsecase *silv
 // RouteRegister export
 func (bpc *BlueprintComicv1) RouteRegister(parentRouter *mux.Router) {
 	router := parentRouter.PathPrefix(bpc.route).Subrouter()
-	router.HandleFunc("", bpc.comic).Methods("GET", "POST")
-	router.HandleFunc("/", bpc.comic).Methods("GET", "POST")
+	router.HandleFunc("", bpc.root).Methods("GET", "POST")
+	router.HandleFunc("/", bpc.root).Methods("GET", "POST")
 	router.HandleFunc("/{comicID}", bpc.deleteComic).Methods("DELETE")
 	router.HandleFunc("/chapter", bpc.chapter).Methods("GET")
 
@@ -44,11 +49,11 @@ func (bpc *BlueprintComicv1) RouteRegister(parentRouter *mux.Router) {
 	sRouter.HandleFunc("/chapter", bpc.chapter).Methods("GET")
 }
 
-func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
+func (bpc *BlueprintComicv1) root(w http.ResponseWriter, r *http.Request) {
 	isAdmin := false
 	sessionToken := r.Header.Get("Authorization")
 	if sessionToken != "" {
-		session, err := bpc.sessionUsecase.GetSession(&sessionToken)
+		session, err := bpc.auth.GetSession(&sessionToken)
 		if err != nil {
 			isAdmin = false
 		} else if accountIsAdmin, _ := bpc.auth.IsAdmin(session.GetAccount()); accountIsAdmin == true {
@@ -63,7 +68,7 @@ func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 
 			response := new(entity.APIResponse)
-			result, err := bpc.silverfish.GetComicByID(&comicID)
+			result, err := bpc.comic.GetComicByID(&comicID)
 			if (err != nil && err.Error() == "not found") ||
 				(result != nil && !result.IsEnable && !isAdmin) {
 				w.WriteHeader(http.StatusNotFound)
@@ -86,7 +91,7 @@ func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
 			if comicURL != "" {
 				w.Header().Set("Content-Type", "application/json")
 
-				result, err := bpc.silverfish.AddComicByURL(&comicURL)
+				result, err := bpc.comic.AddComicByURL(&comicURL)
 				response = entity.NewAPIResponse(result, err)
 			} else {
 				response = entity.NewAPIResponse(nil, errors.New("Field comic_url should not be empty"))
@@ -105,7 +110,7 @@ func (bpc *BlueprintComicv1) deleteComic(w http.ResponseWriter, r *http.Request)
 		sessionToken := r.Header.Get("Authorization")
 		w.Header().Set("Content-Type", "application/json")
 
-		session, err := bpc.sessionUsecase.GetSession(&sessionToken)
+		session, err := bpc.auth.GetSession(&sessionToken)
 		response := new(entity.APIResponse)
 		if err != nil {
 			response = entity.NewAPIResponse(nil, err)
@@ -116,7 +121,7 @@ func (bpc *BlueprintComicv1) deleteComic(w http.ResponseWriter, r *http.Request)
 			comicID := params["comicID"]
 
 			if comicID != "" {
-				err := bpc.silverfish.RemoveComicByID(&comicID)
+				err := bpc.comic.RemoveComicByID(&comicID)
 				response = entity.NewAPIResponse(nil, err)
 			} else {
 				response = entity.NewAPIResponse(nil, errors.New("Field comic_id should not be empty"))
@@ -136,7 +141,7 @@ func (bpc *BlueprintComicv1) listComic(w http.ResponseWriter, r *http.Request) {
 		shouldFetchDisable := false
 		sessionToken := r.Header.Get("Authorization")
 		if sessionToken != "" {
-			session, _ := bpc.sessionUsecase.GetSession(&sessionToken)
+			session, _ := bpc.auth.GetSession(&sessionToken)
 			if session == nil {
 				shouldFetchDisable = false
 			} else if isAdmin, _ := bpc.auth.IsAdmin(session.GetAccount()); isAdmin == true {
@@ -144,7 +149,7 @@ func (bpc *BlueprintComicv1) listComic(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		result, err := bpc.silverfish.GetComics(shouldFetchDisable)
+		result, err := bpc.comic.GetComics(shouldFetchDisable)
 		response := entity.NewAPIResponse(result, err)
 		js, _ := json.Marshal(response)
 		w.Write(js)
@@ -157,7 +162,7 @@ func (bpc *BlueprintComicv1) chapter(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		sessionToken := r.Header.Get("Authorization")
-		session, _ := bpc.sessionUsecase.GetSession(&sessionToken)
+		session, _ := bpc.auth.GetSession(&sessionToken)
 
 		comicID := r.URL.Query().Get("comic_id")
 		chapterIndex := r.URL.Query().Get("chapter_index")
@@ -165,10 +170,10 @@ func (bpc *BlueprintComicv1) chapter(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.Header().Set("Content-Type", "application/json")
-			result, err := bpc.silverfish.GetComicChapter(&comicID, &chapterIndex)
+			result, err := bpc.comic.GetComicChapter(&comicID, &chapterIndex)
 			response := entity.NewAPIResponse(result, err)
 			if err == nil && session != nil {
-				go bpc.auth.UpdateBookmark("Comic", &comicID, session.GetAccount(), &chapterIndex)
+				go bpc.user.UpdateBookmark("Comic", &comicID, session.GetAccount(), &chapterIndex)
 			}
 			js, _ := json.Marshal(response)
 			w.Write(js)

@@ -18,29 +18,37 @@ import (
 // Router export
 type Router struct {
 	recaptchaPrivateKey *string
-	sf                  *silverfish.Silverfish
-	sessionUsecase      *silverfish.SessionUsecase
-	api                 interf.IBlueprint
+	auth                *BlueprintAuth
+	admin               *BlueprintAdmin
 	user                *BlueprintUser
+	api                 interf.IBlueprint
 }
 
 // NewRouter export
-func NewRouter(recaptchaPrivateKey *string, sf *silverfish.Silverfish, sessionUsecase *silverfish.SessionUsecase) *Router {
+func NewRouter(
+	recaptchaPrivateKey *string,
+	auth *silverfish.Auth,
+	admin *silverfish.Admin,
+	user *silverfish.User,
+	novel *silverfish.Novel,
+	comic *silverfish.Comic,
+) *Router {
 	rr := new(Router)
 	rr.recaptchaPrivateKey = recaptchaPrivateKey
-	rr.sf = sf
-	rr.sessionUsecase = sessionUsecase
-	rr.user = NewBlueprintUser(sf, rr, sessionUsecase)
-	rr.api = api.NewBlueprintAPI(sf, rr, sessionUsecase)
+	rr.auth = NewBlueprintAuth(auth, rr)
+	rr.admin = NewBlueprintAdmin(auth, admin, novel, comic, rr)
+	rr.user = NewBlueprintUser(auth, user, rr)
+	rr.api = api.NewBlueprintAPI(auth, user, novel, comic, rr)
 	return rr
 }
 
 // RouteRegister export
 func (rr *Router) RouteRegister(parentRouter *mux.Router) {
 	router := parentRouter
-	router.HandleFunc("/", rr.Root)
-	router.HandleFunc("/admin/fetchers", rr.FetcherList)
+	router.HandleFunc("/", rr.root)
 
+	rr.auth.RouterRegiter(router)
+	rr.admin.RouteRegister(router)
 	rr.user.RouteRegister(router)
 	rr.api.RouteRegister(router)
 }
@@ -61,39 +69,12 @@ func (rr *Router) VerifyRecaptcha(token *string) (bool, error) {
 	return result.Success, errors.New(strings.Join(result.ErrorCodes, " , "))
 }
 
-// Root export
-func (rr *Router) Root(w http.ResponseWriter, r *http.Request) {
+func (rr *Router) root(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		w.WriteHeader(http.StatusNotFound)
 	} else {
 		w.Header().Set("Content-Type", "application/json")
 		js, _ := json.Marshal(map[string]bool{"Success": true})
 		w.Write(js)
-	}
-}
-
-// FetcherList export
-func (rr *Router) FetcherList(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		sessionToken := r.Header.Get("Authorization")
-		w.Header().Set("Content-Type", "application/json")
-
-		session, err := rr.sessionUsecase.GetSession(&sessionToken)
-		response := new(entity.APIResponse)
-		if err != nil {
-			response = entity.NewAPIResponse(nil, err)
-		} else if isAdmin, _ := rr.sf.Auth.IsAdmin(session.GetAccount()); isAdmin == false {
-			response = entity.NewAPIResponse(nil, errors.New("Only Admin allowed"))
-		} else {
-			fetcherLists := rr.sf.GetLists()
-			response = entity.NewAPIResponse(map[string]interface{}{
-				"fetchers": fetcherLists,
-			}, nil)
-		}
-		js, _ := json.Marshal(response)
-		w.Write(js)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }

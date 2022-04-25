@@ -26,6 +26,16 @@ func NewSession(keepLogin bool, token *string, user *User) *Session {
 	return s
 }
 
+// GetToken export
+func (s *Session) GetToken() *string {
+	return s.token
+}
+
+// GetExpireTS
+func (s *Session) GetExpireTS() time.Time {
+	return s.expireTS
+}
+
 // GetAccount export
 func (s *Session) GetAccount() *string {
 	return s.account
