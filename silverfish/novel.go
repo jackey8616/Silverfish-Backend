@@ -51,7 +51,7 @@ func (n *Novel) GetNovels(shouldFetchDisable bool) (*[]entity.NovelInfo, error) 
 		selector = nil
 	}
 	result, err := n.novelInf.FindSelectAll(selector, bson.M{
-		"novelID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
+		"isEnable": 1, "novelID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
 	return result.(*[]entity.NovelInfo), err
 }
 

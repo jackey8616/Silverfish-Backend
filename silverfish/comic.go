@@ -51,7 +51,7 @@ func (c *Comic) GetComics(shouldFetchDisable bool) (*[]entity.ComicInfo, error) 
 		selector = nil
 	}
 	result, err := c.comicInf.FindSelectAll(selector, bson.M{
-		"comicID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
+		"isEnable": 1, "comicID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
 	return result.(*[]entity.ComicInfo), err
 }
 
