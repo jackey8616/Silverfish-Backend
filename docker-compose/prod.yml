@@ -2,10 +2,12 @@ version: "3"
 
 services:
   mongo:
-    image: mongo
+    image: mongo:4.2
     volumes:
-      - "../mongo-data:/data/db"
+    - "../mongo-data:/data/db"
     restart: unless-stopped
+    networks:
+    - default
 
   backend:
     build:
@@ -13,8 +15,13 @@ services:
       dockerfile: Dockerfile
     volumes:
     - "../config.json:/config.json:ro"
-    ports:
-      - "2087:8080"
     restart: unless-stopped
     links:
-      - mongo
+    - mongo
+    networks:
+    - default
+    - ng-proxy
+
+networks:
+  ng-proxy:
+    external: true

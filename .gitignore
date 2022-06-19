@@ -1,4 +1,5 @@
 .vscode/
 mongo-data/
 
-dev.config.json
+config.json
+*.config.json
