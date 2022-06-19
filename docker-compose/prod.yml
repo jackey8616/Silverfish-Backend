@@ -2,6 +2,7 @@ version: "3"
 
 services:
   mongo:
+    container_name: silverfish-mongo
     image: mongo:4.2
     volumes:
     - "../mongo-data:/data/db"
@@ -10,11 +11,12 @@ services:
     - default
 
   backend:
+    container_name: silverfish-backend
     build:
       context: ../
       dockerfile: Dockerfile
     volumes:
-    - "../config.json:/config.json:ro"
+    - "../prod.config.json:/config.json:ro"
     restart: unless-stopped
     links:
     - mongo
