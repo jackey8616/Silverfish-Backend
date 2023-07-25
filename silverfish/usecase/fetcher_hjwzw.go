@@ -37,7 +37,11 @@ func (fh *FetcherHjwzw) IsSplit(doc *goquery.Document) bool {
 // Filter export
 func (fh *FetcherHjwzw) Filter(raw *string) *string {
 	str := *raw
-	str = str[strings.Index(str, "</p>")+4:]
+	index := strings.Index(str, "</p>")
+	if index == -1 {
+		return &str
+	}
+	str = str[index+4:]
 	str = strings.Replace(str, "讀好書,請記住讀書客唯一地址()</p>", "</p>", 1)
 	str = strings.Replace(str, "緊張時放松自己，煩惱時安慰自己，開心時別忘了祝福自己!", "", -1)
 	str = strings.Replace(str, "<p>\n</p>", "", -1)
