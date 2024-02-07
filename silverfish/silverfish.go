@@ -37,6 +37,7 @@ func New(
 		"www.manhuaniu.com":  usecase.NewFetcherManhuaniu("www.manhuaniu.com"),
 		"www.mangabz.com":    usecase.NewFetcherMangabz("www.mangabz.com"),
 		"m.happymh.com":      usecase.NewFetcherHappymh("m.happymh.com"),
+		"www.baozimh.com":    usecase.NewFetcherBaozimh("www.baozimh.com"),
 		"www.mfhmh.com":      usecase.NewFetcherMfhmh("www.mfhmh.com"),     // Oops...
 		"www.ikanwzd.top":    usecase.NewFetcherIkanwzd("www.ikanwzd.top"), // Oops...
 	}
