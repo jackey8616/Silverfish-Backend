@@ -130,10 +130,8 @@ func (fb *FetcherBaozimh) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 	return comic, nil
 }
 
-// FetchComicChapter export
-func (fb *FetcherBaozimh) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
-	comicURLs := []string{}
-	url := fb.GetChapterURL(comic, comic.Chapters[index].URL)
+func (fb *FetcherBaozimh) fetchComicChapter(url *string) ([]string, error) {
+	comicUrls := []string{}
 	doc, docErr := fb.FetchDoc(url)
 	if docErr != nil {
 		return nil, fmt.Errorf("FetchComicChapter error")
@@ -142,11 +140,30 @@ func (fb *FetcherBaozimh) FetchComicChapter(comic *entity.Comic, index int) ([]s
 	doc.Find("ul.comic-contain > div > amp-img").Each(func(i int, s *goquery.Selection) {
 		imageUrl, ok := s.Attr("src")
 		if imageUrl != "" && ok {
-			comicURLs = append(comicURLs, imageUrl)
+			comicUrls = append(comicUrls, imageUrl)
 		} else {
 			logrus.Printf("ChapterImage missing url")
 		}
 	})
-	logrus.Print(comicURLs)
-	return comicURLs, nil
+
+	doc.Find("div.next_chapter > a").Each(func(i int, s *goquery.Selection) {
+		isNextPage := strings.Contains(s.Text(), "點擊進入下一頁")
+		if isNextPage == true {
+			nextPageUrl, _ := s.Attr("href")
+			nextPageComicUrls, nextPageFetchErr := fb.fetchComicChapter(&nextPageUrl)
+			if nextPageFetchErr != nil {
+				logrus.Printf("Fetching next page failed")
+			} else {
+				comicUrls = append(comicUrls, nextPageComicUrls...)
+			}
+		}
+	})
+
+	return comicUrls, nil
+}
+
+// FetchComicChapter export
+func (fb *FetcherBaozimh) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
+	url := fb.GetChapterURL(comic, comic.Chapters[index].URL)
+	return fb.fetchComicChapter(url)
 }
