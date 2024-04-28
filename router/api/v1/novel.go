@@ -38,8 +38,8 @@ func (bpn *BlueprintNovelv1) RouteRegister(parentRouter *mux.Router) {
 	router := parentRouter.PathPrefix(bpn.route).Subrouter()
 	router.HandleFunc("", bpn.root).Methods("GET", "POST")
 	router.HandleFunc("/", bpn.root).Methods("GET", "POST")
-	router.HandleFunc("/{novelID}", bpn.novel).Methods("GET", "DELETE")
-	router.HandleFunc("/{novelID}/chapter/{chapterIndex}", bpn.chapter).Methods("GET")
+	router.HandleFunc("/{novelId}", bpn.novel).Methods("GET", "DELETE")
+	router.HandleFunc("/{novelId}/chapter/{chapterIndex}", bpn.chapter).Methods("GET")
 }
 
 func (bpn *BlueprintNovelv1) root(w http.ResponseWriter, r *http.Request) {
@@ -58,9 +58,9 @@ func (bpn *BlueprintNovelv1) root(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		novelID := params["novelID"]
-		if novelID != "" {
-			result, err := bpn.novelSer.GetNovelByID(&novelID)
+		novelId := params["novelId"]
+		if novelId != "" {
+			result, err := bpn.novelSer.GetNovelById(&novelId)
 			if (err != nil && err.Error() == "not found") ||
 				(result != nil && !result.IsEnable && !isAdmin) {
 				w.WriteHeader(http.StatusNotFound)
@@ -98,8 +98,8 @@ func (bpn *BlueprintNovelv1) root(w http.ResponseWriter, r *http.Request) {
 func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	novelID := params["novelID"]
-	if novelID == "" {
+	novelId := params["novelId"]
+	if novelId == "" {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -116,7 +116,7 @@ func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		result, err := bpn.novelSer.GetNovelByID(&novelID)
+		result, err := bpn.novelSer.GetNovelById(&novelId)
 		if (err != nil && err.Error() == "not found") ||
 			(result != nil && !result.IsEnable && !isAdmin) {
 			w.WriteHeader(http.StatusNotFound)
@@ -129,11 +129,11 @@ func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
 		response := new(entity.APIResponse)
 		if isAdmin == false {
 			response = entity.NewAPIResponse(nil, errors.New("Only Admin allowed"))
-		} else if novelID != "" {
-			err := bpn.novelSer.RemoveNovelByID(&novelID)
+		} else if novelId != "" {
+			err := bpn.novelSer.RemoveNovelById(&novelId)
 			response = entity.NewAPIResponse(nil, err)
 		} else {
-			response = entity.NewAPIResponse(nil, errors.New("Field novelID should not be empty"))
+			response = entity.NewAPIResponse(nil, errors.New("Field novelId should not be empty"))
 		}
 		js, _ := json.Marshal(response)
 		w.Write(js)
@@ -145,9 +145,9 @@ func (bpn *BlueprintNovelv1) novel(w http.ResponseWriter, r *http.Request) {
 func (bpn *BlueprintNovelv1) chapter(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	novelID := params["novelID"]
+	novelId := params["novelId"]
 	chapterIndex := params["chapterIndex"]
-	if novelID == "" || chapterIndex == "" {
+	if novelId == "" || chapterIndex == "" {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	sessionToken := r.Header.Get("Authorization")
@@ -155,10 +155,10 @@ func (bpn *BlueprintNovelv1) chapter(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		result, err := bpn.novelSer.GetNovelChapter(&novelID, &chapterIndex)
+		result, err := bpn.novelSer.GetNovelChapter(&novelId, &chapterIndex)
 		response := entity.NewAPIResponse(result, err)
 		if err == nil && session != nil {
-			go bpn.userSer.UpdateBookmark("Novel", &novelID, session.GetAccount(), &chapterIndex)
+			go bpn.userSer.UpdateBookmark("Novel", &novelId, session.GetAccount(), &chapterIndex)
 		}
 		js, _ := json.Marshal(response)
 		w.Write(js)

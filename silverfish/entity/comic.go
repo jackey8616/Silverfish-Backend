@@ -1,11 +1,17 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+)
 
 // ComicInfo export
 type ComicInfo struct {
 	IsEnable      bool      `json:"isEnable" bson:"isEnable"`
-	ComicID       string    `json:"comicID" bson:"comicID"`
+	ComicId       string    `json:"comicId" bson:"comicId"`
 	Title         string    `json:"title" bson:"title"`
 	Author        string    `json:"author" bson:"author"`
 	Description   string    `json:"description" bson:"description"`
@@ -16,7 +22,7 @@ type ComicInfo struct {
 // Comic export
 type Comic struct {
 	IsEnable      bool           `json:"isEnable" bson:"isEnable"`
-	ComicID       string         `json:"comicID" bson:"comicID"`
+	ComicId       string         `json:"comicId" bson:"comicId"`
 	DNS           string         `json:"dns" bson:"dns"`
 	Title         string         `json:"title" bson:"title"`
 	Author        string         `json:"author" bson:"author"`
@@ -38,7 +44,7 @@ type ComicChapter struct {
 func (comic *Comic) GetComicInfo() *ComicInfo {
 	return &ComicInfo{
 		IsEnable:      comic.IsEnable,
-		ComicID:       comic.ComicID,
+		ComicId:       comic.ComicId,
 		Title:         comic.Title,
 		Author:        comic.Author,
 		Description:   comic.Description,
@@ -50,10 +56,28 @@ func (comic *Comic) GetComicInfo() *ComicInfo {
 // SetComicInfo export
 func (comic *Comic) SetComicInfo(info *ComicInfo) {
 	comic.IsEnable = info.IsEnable
-	comic.ComicID = info.ComicID
+	comic.ComicId = info.ComicId
 	comic.Title = info.Title
 	comic.Author = info.Author
 	comic.Description = info.Description
 	comic.CoverURL = info.CoverURL
 	comic.LastCrawlTime = info.LastCrawlTime
+}
+
+func (comic *Comic) TransformKey() (map[string]types.AttributeValue, error) {
+	return attributevalue.MarshalMap(map[string]string{
+		"comicId": comic.ComicId,
+	})
+}
+
+func (comic *Comic) TransformToUpdateBuilder() expression.UpdateBuilder {
+	return expression.Set(expression.Name("IsEnable"), expression.Value(comic.IsEnable)).
+		Set(expression.Name("DNS"), expression.Value(comic.DNS)).
+		Set(expression.Name("Title"), expression.Value(comic.Title)).
+		Set(expression.Name("Author"), expression.Value(comic.Author)).
+		Set(expression.Name("Description"), expression.Value(comic.Description)).
+		Set(expression.Name("URL"), expression.Value(comic.URL)).
+		Set(expression.Name("CoverURL"), expression.Value(comic.CoverURL)).
+		Set(expression.Name("Chapters"), expression.Value(comic.Chapters)).
+		Set(expression.Name("LastCrawlTime"), expression.Value(comic.LastCrawlTime))
 }

@@ -38,8 +38,8 @@ func (bpc *BlueprintComicv1) RouteRegister(parentRouter *mux.Router) {
 	router := parentRouter.PathPrefix(bpc.route).Subrouter()
 	router.HandleFunc("", bpc.root).Methods("GET", "POST")
 	router.HandleFunc("/", bpc.root).Methods("GET", "POST")
-	router.HandleFunc("/{comicID}", bpc.comic).Methods("GET", "DELETE")
-	router.HandleFunc("/{comicID}/chapter/{chapterIndex}", bpc.chapter).Methods("GET")
+	router.HandleFunc("/{comicId}", bpc.comic).Methods("GET", "DELETE")
+	router.HandleFunc("/{comicId}/chapter/{chapterIndex}", bpc.chapter).Methods("GET")
 }
 
 func (bpc *BlueprintComicv1) root(w http.ResponseWriter, r *http.Request) {
@@ -58,9 +58,9 @@ func (bpc *BlueprintComicv1) root(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		comicID := params["comicID"]
-		if comicID != "" {
-			result, err := bpc.comicSer.GetComicByID(&comicID)
+		comicId := params["comicId"]
+		if comicId != "" {
+			result, err := bpc.comicSer.GetComicById(&comicId)
 			if (err != nil && err.Error() == "not found") ||
 				(result != nil && !result.IsEnable && !isAdmin) {
 				w.WriteHeader(http.StatusNotFound)
@@ -98,8 +98,8 @@ func (bpc *BlueprintComicv1) root(w http.ResponseWriter, r *http.Request) {
 func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	comicID := params["comicID"]
-	if comicID == "" {
+	comicId := params["comicId"]
+	if comicId == "" {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -116,7 +116,7 @@ func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		result, err := bpc.comicSer.GetComicByID(&comicID)
+		result, err := bpc.comicSer.GetComicById(&comicId)
 		if (err != nil && err.Error() == "not found") ||
 			(result != nil && !result.IsEnable && !isAdmin) {
 			w.WriteHeader(http.StatusNotFound)
@@ -129,11 +129,11 @@ func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
 		response := new(entity.APIResponse)
 		if isAdmin == false {
 			response = entity.NewAPIResponse(nil, errors.New("Only Admin allowed"))
-		} else if comicID != "" {
-			err := bpc.comicSer.RemoveComicByID(&comicID)
+		} else if comicId != "" {
+			err := bpc.comicSer.RemoveComicById(&comicId)
 			response = entity.NewAPIResponse(nil, err)
 		} else {
-			response = entity.NewAPIResponse(nil, errors.New("Field comicID should not be empty"))
+			response = entity.NewAPIResponse(nil, errors.New("Field comicId should not be empty"))
 		}
 		js, _ := json.Marshal(response)
 		w.Write(js)
@@ -145,9 +145,9 @@ func (bpc *BlueprintComicv1) comic(w http.ResponseWriter, r *http.Request) {
 func (bpc *BlueprintComicv1) chapter(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
-	comicID := params["comicID"]
+	comicId := params["comicId"]
 	chapterIndex := params["chapterIndex"]
-	if comicID == "" || chapterIndex == "" {
+	if comicId == "" || chapterIndex == "" {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	sessionToken := r.Header.Get("Authorization")
@@ -155,10 +155,10 @@ func (bpc *BlueprintComicv1) chapter(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		result, err := bpc.comicSer.GetComicChapter(&comicID, &chapterIndex)
+		result, err := bpc.comicSer.GetComicChapter(&comicId, &chapterIndex)
 		response := entity.NewAPIResponse(result, err)
 		if err == nil && session != nil {
-			go bpc.userSer.UpdateBookmark("Comic", &comicID, session.GetAccount(), &chapterIndex)
+			go bpc.userSer.UpdateBookmark("Comic", &comicId, session.GetAccount(), &chapterIndex)
 		}
 		js, _ := json.Marshal(response)
 		w.Write(js)

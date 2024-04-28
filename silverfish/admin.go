@@ -6,11 +6,11 @@ import (
 
 // Admin export
 type Admin struct {
-	userInf *entity.MongoInf
+	userInf *entity.DynamoInf
 }
 
 // NewAdmin export
-func NewAdmin(userInf *entity.MongoInf) *Admin {
+func NewAdmin(userInf *entity.DynamoInf) *Admin {
 	a := new(Admin)
 	a.userInf = userInf
 	return a

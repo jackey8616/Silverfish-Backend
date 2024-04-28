@@ -41,7 +41,7 @@ func (fc *FetcherComicbus) CrawlComic(url *string) (*entity.Comic, error) {
 		return nil, docErr
 	}
 
-	id := fc.GenerateID(url)
+	id := fc.GenerateId(url)
 	info, infoErr := fc.FetchComicInfo(id, doc, cookies)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -61,7 +61,7 @@ func (fc *FetcherComicbus) CrawlComic(url *string) (*entity.Comic, error) {
 }
 
 // FetchComicInfo export
-func (fc *FetcherComicbus) FetchComicInfo(comicID *string, doc *goquery.Document, cookies []*http.Cookie) (*entity.ComicInfo, error) {
+func (fc *FetcherComicbus) FetchComicInfo(comicId *string, doc *goquery.Document, cookies []*http.Cookie) (*entity.ComicInfo, error) {
 	title := doc.Find("td > font[style='font-size:10pt; letter-spacing:1px']").Text()
 	author := doc.Find("td:contains('作者：')+td").Text()
 	description := doc.Find("tbody > tr > td[style='line-height:25px']").Text()
@@ -73,7 +73,7 @@ func (fc *FetcherComicbus) FetchComicInfo(comicID *string, doc *goquery.Document
 
 	return &entity.ComicInfo{
 		IsEnable:      true,
-		ComicID:       *comicID,
+		ComicId:       *comicId,
 		Title:         title,
 		Author:        author,
 		Description:   description,
@@ -115,7 +115,7 @@ func (fc *FetcherComicbus) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, 
 		return nil, docErr
 	}
 
-	info, infoErr := fc.FetchComicInfo(&comic.ComicID, doc, cookies)
+	info, infoErr := fc.FetchComicInfo(&comic.ComicId, doc, cookies)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
 	}

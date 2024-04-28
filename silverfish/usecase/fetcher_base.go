@@ -94,8 +94,8 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Do
 	return doc, res.Cookies(), nil
 }
 
-// GenerateID export
-func (f *Fetcher) GenerateID(url *string) *string {
+// GenerateId export
+func (f *Fetcher) GenerateId(url *string) *string {
 	hash := md5.Sum([]byte(*url))
 	md5str2 := fmt.Sprintf("%x", hash)
 	id, _ := baseconv.Convert(md5str2, baseconv.DigitsHex, baseconv.Digits62)

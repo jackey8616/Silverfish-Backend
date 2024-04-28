@@ -6,19 +6,20 @@ import (
 
 	entity "silverfish/silverfish/entity"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 )
 
 // Auth export
 type Auth struct {
 	hashSalt    *string
 	sessionSalt *string
-	userInf     *entity.MongoInf
+	userInf     *entity.DynamoInf
 	sessions    map[string]*entity.Session
 }
 
 // NewAuth export
-func NewAuth(hashSalt *string, userInf *entity.MongoInf) *Auth {
+func NewAuth(hashSalt *string, userInf *entity.DynamoInf) *Auth {
 	saltTmp := "SILVERFISH"
 	a := new(Auth)
 	a.hashSalt = hashSalt
@@ -85,10 +86,32 @@ func (a *Auth) KillSession(sessionToken *string) bool {
 	return false
 }
 
+func (a *Auth) findByAccount(account string) (*entity.User, error) {
+	keyCond := expression.Key("account").Equal(expression.Value(account))
+
+	result, err := a.userInf.FindOne(&keyCond, &entity.User{})
+	if err != nil {
+		return nil, err
+	}
+
+	return result.(*entity.User), nil
+}
+
+func (a *Auth) upsertUser(user *entity.User) (*entity.User, error) {
+	item, err := attributevalue.MarshalMap(user)
+	if err != nil {
+		return nil, err
+	}
+
+	_, putErr := a.userInf.Upsert(item)
+	return user, putErr
+}
+
 // Register export
 func (a *Auth) Register(isAdmin bool, account, password *string) (*entity.User, error) {
 	hashedPassword := SHA512Str(password, a.hashSalt)
-	_, err := a.userInf.FindOne(bson.M{"account": *account}, &entity.User{})
+	_, err := a.findByAccount(*account)
+
 	if err != nil {
 		if err.Error() == "not found" {
 			registerTime := time.Now()
@@ -100,7 +123,7 @@ func (a *Auth) Register(isAdmin bool, account, password *string) (*entity.User, 
 				LastLoginDatetime: registerTime,
 				Bookmark:          &entity.Bookmark{},
 			}
-			a.userInf.Upsert(bson.M{"account": *account}, user)
+			a.upsertUser(user)
 			return &entity.User{
 				IsAdmin:           user.IsAdmin,
 				Account:           user.Account,
@@ -117,20 +140,19 @@ func (a *Auth) Register(isAdmin bool, account, password *string) (*entity.User, 
 // Login export
 func (a *Auth) Login(account, password *string) (*entity.User, error) {
 	hashedPassword := SHA512Str(password, a.hashSalt)
-	result, err := a.userInf.FindOne(bson.M{"account": *account}, &entity.User{})
+	user, err := a.findByAccount(*account)
 	if err != nil {
 		if err.Error() == "not found" {
 			return nil, errors.New("Account not exists")
 		}
 		return nil, err
 	}
-	user := result.(*entity.User)
 	if user.Password != *hashedPassword {
 		return nil, errors.New("Account or Password wrong")
 	}
 
 	user.LastLoginDatetime = time.Now()
-	a.userInf.Upsert(bson.M{"account": account}, user)
+	a.upsertUser(user)
 	return &entity.User{
 		IsAdmin:           user.IsAdmin,
 		Account:           user.Account,
@@ -142,9 +164,9 @@ func (a *Auth) Login(account, password *string) (*entity.User, error) {
 
 // IsAdmin export
 func (a *Auth) IsAdmin(account *string) (bool, error) {
-	result, err := a.userInf.FindOne(bson.M{"account": account}, &entity.User{})
+	user, err := a.findByAccount(*account)
 	if err != nil {
 		return false, errors.New("Account not exists")
 	}
-	return result.(*entity.User).IsAdmin, nil
+	return user.IsAdmin, nil
 }

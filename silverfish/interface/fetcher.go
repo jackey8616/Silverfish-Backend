@@ -17,7 +17,7 @@ type INovelFetcher interface {
 
 	GetChapterURL(novel *entity.Novel, index int) *string
 	CrawlNovel(url *string) (*entity.Novel, error)
-	FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error)
+	FetchNovelInfo(novelId *string, doc *goquery.Document) (*entity.NovelInfo, error)
 	FetchChapterInfo(doc *goquery.Document, title, url string) []entity.NovelChapter
 	UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error)
 	FetchNovelChapter(novel *entity.Novel, index int) (*string, error)
@@ -30,7 +30,7 @@ type IComicFetcher interface {
 
 	GetChapterURL(comic *entity.Comic, url string) *string
 	CrawlComic(url *string) (*entity.Comic, error)
-	FetchComicInfo(comicID *string, doc *goquery.Document, cookies []*http.Cookie) (*entity.ComicInfo, error)
+	FetchComicInfo(comicId *string, doc *goquery.Document, cookies []*http.Cookie) (*entity.ComicInfo, error)
 	FetchChapterInfo(doc *goquery.Document, cookies []*http.Cookie, title, url string) []entity.ComicChapter
 	UpdateComicInfo(comic *entity.Comic) (*entity.Comic, error)
 	FetchComicChapter(comic *entity.Comic, index int) ([]string, error)

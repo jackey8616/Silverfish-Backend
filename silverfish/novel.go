@@ -8,14 +8,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Novel export
 type Novel struct {
 	auth          *Auth
-	novelInf      *entity.MongoInf
+	novelInf      *entity.DynamoInf
 	novelFetchers map[string]interf.INovelFetcher
 	crawlDuration int
 }
@@ -23,7 +24,7 @@ type Novel struct {
 // NewNovel export
 func NewNovel(
 	auth *Auth,
-	novelInf *entity.MongoInf,
+	novelInf *entity.DynamoInf,
 	novelFetchers map[string]interf.INovelFetcher,
 	crawlDuration int,
 ) *Novel {
@@ -33,6 +34,36 @@ func NewNovel(
 	n.novelFetchers = novelFetchers
 	n.crawlDuration = crawlDuration
 	return n
+}
+
+func (n *Novel) findByNovelId(novelId string) (*entity.Novel, error) {
+	novelIdString, marshalErr := attributevalue.Marshal(novelId)
+	if marshalErr != nil {
+		return nil, marshalErr
+	}
+
+	keyCond := expression.Key("NovelId").Equal(expression.Value(novelIdString))
+	result, err := n.novelInf.FindOne(&keyCond, &entity.Novel{})
+	if err != nil {
+		return nil, err
+	}
+
+	return result.(*entity.Novel), nil
+}
+
+func (n *Novel) findByNovelUrl(novelUrl string) (*entity.Novel, error) {
+	novelUrlString, marshalErr := attributevalue.Marshal(novelUrl)
+	if marshalErr != nil {
+		return nil, marshalErr
+	}
+
+	keyCond := expression.Key("novelURL").Equal(expression.Value(novelUrlString))
+	result, err := n.novelInf.FindOne(&keyCond, &entity.Novel{})
+	if err != nil {
+		return nil, err
+	}
+
+	return result.(*entity.Novel), nil
 }
 
 // GetFetchers export
@@ -46,52 +77,68 @@ func (n *Novel) GetFetcherNameLists() []string {
 
 // GetNovels export
 func (n *Novel) GetNovels(shouldFetchDisable bool) (*[]entity.NovelInfo, error) {
-	selector := bson.M{"isEnable": true}
-	if shouldFetchDisable {
-		selector = nil
+	var keyCond expression.KeyConditionBuilder
+	if shouldFetchDisable == false {
+		keyCond = expression.Key("IsEnable").Equal(expression.Value(true))
 	}
-	result, err := n.novelInf.FindSelectAll(selector, bson.M{
-		"isEnable": 1, "novelID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.NovelInfo{})
+
+	projConf := expression.NamesList(
+		expression.Name("IsEnable"),
+		expression.Name("NovelId"),
+		expression.Name("CoverUrl"),
+		expression.Name("Title"),
+		expression.Name("Author"),
+		expression.Name("LastCrawlTime"),
+	)
+	result, err := n.novelInf.FindSelectAll(&keyCond, &projConf, &[]entity.NovelInfo{})
 	return result.(*[]entity.NovelInfo), err
 }
 
-// GetNovelByID export
-func (n *Novel) GetNovelByID(novelID *string) (*entity.Novel, error) {
-	result, err := n.novelInf.FindOne(bson.M{"novelID": *novelID}, &entity.Novel{})
+// GetNovelById export
+func (n *Novel) GetNovelById(novelId *string) (*entity.Novel, error) {
+	novel, err := n.findByNovelId(*novelId)
 	if err != nil {
 		return nil, err
 	}
 
-	novel := result.(*entity.Novel)
 	if time.Since(novel.LastCrawlTime).Minutes() > float64(n.crawlDuration) {
 		lastCrawlTime := novel.LastCrawlTime
-		novel, err = n.novelFetchers[novel.DNS].UpdateNovelInfo(novel)
+		toUpdateNovel, err := n.novelFetchers[novel.DNS].UpdateNovelInfo(novel)
 		if err != nil {
 			logrus.Print(err.Error())
 			return nil, err
 		}
-		n.novelInf.Update(bson.M{"novelID": *novelID}, novel)
-		logrus.Printf("Updated novel <novel_id: %s, title: %s> since %s", novel.NovelID, novel.Title, lastCrawlTime)
+
+		key, marshalErr := toUpdateNovel.TransformKey()
+		if marshalErr != nil {
+			return nil, marshalErr
+		}
+		data := toUpdateNovel.TransformToUpdateBuilder()
+		n.novelInf.Update(key, nil, &data)
+		logrus.Printf("Updated novel <novel_id: %s, title: %s> since %s", novel.NovelId, novel.Title, lastCrawlTime)
 	}
 
 	return novel, nil
 }
 
-// RemoveNovelByID export
-func (n *Novel) RemoveNovelByID(novelID *string) error {
-	err := n.novelInf.Remove(bson.M{"novelID": *novelID})
+// RemoveNovelById export
+func (n *Novel) RemoveNovelById(novelId *string) error {
+	key, marshalErr := attributevalue.MarshalMap(map[string]string{
+		"NoveId": *novelId,
+	})
+	if marshalErr != nil {
+		return marshalErr
+	}
+
+	err := n.novelInf.Delete(key)
 	if err != nil {
 		return err
 	}
-	err = n.auth.userInf.Update(bson.M{
-		fmt.Sprintf(`bookmark.novel.%s`, *novelID): bson.M{
-			"$exists": true,
-		},
-	}, bson.M{
-		"$unset": bson.M{
-			fmt.Sprintf(`bookmark.novel.%s`, *novelID): "",
-		},
-	})
+
+	novelIdBookmarkKey := fmt.Sprintf(`bookmark.novel.%s`, *novelId)
+	cond := expression.AttributeExists(expression.Name(novelIdBookmarkKey))
+	updateCond := expression.Remove(expression.Name(novelIdBookmarkKey))
+	err = n.auth.userInf.Update(nil, &cond, &updateCond)
 	if err != nil && err.Error() != "not found" {
 		return err
 	}
@@ -100,7 +147,7 @@ func (n *Novel) RemoveNovelByID(novelID *string) error {
 
 // AddNovelByURL export
 func (n *Novel) AddNovelByURL(novelURL *string) (*entity.Novel, error) {
-	result, err := n.novelInf.FindOne(bson.M{"novelURL": *novelURL}, &entity.Novel{})
+	novel, err := n.findByNovelUrl(*novelURL)
 	if err != nil {
 		for _, v := range n.novelFetchers {
 			if v.Match(novelURL) {
@@ -109,32 +156,35 @@ func (n *Novel) AddNovelByURL(novelURL *string) (*entity.Novel, error) {
 					logrus.Print(err.Error())
 					return nil, err
 				}
-				n.novelInf.Upsert(bson.M{"novelID": record.NovelID}, record)
-				return record, nil
+				data, err := attributevalue.MarshalMap(record)
+				if err != nil {
+					return nil, err
+				}
+				_, err = n.novelInf.Upsert(data)
+				return record, err
 			}
 		}
 		return nil, errors.New("No suit fetcher")
 
 	}
 
-	return result.(*entity.Novel), nil
+	return novel, nil
 }
 
 // GetNovelChapter export
-func (n *Novel) GetNovelChapter(novelID, chapterIndex *string) (*string, error) {
+func (n *Novel) GetNovelChapter(novelId, chapterIndex *string) (*string, error) {
 	index, err := strconv.Atoi(*chapterIndex)
 	if err != nil {
 		return nil, errors.New("Invalid chapter index")
 	}
-	query, err := n.novelInf.FindOne(bson.M{"novelID": novelID}, &entity.Novel{})
+	novel, err := n.findByNovelId(*novelId)
 	if err != nil {
 		return nil, err
 	}
-	record := query.(*entity.Novel)
-	if len((*record).Chapters) < index {
+	if len((*novel).Chapters) < index {
 		return nil, errors.New("Wrong Index")
-	} else if val, ok := n.novelFetchers[(*record).DNS]; ok {
-		return val.FetchNovelChapter(record, index)
+	} else if val, ok := n.novelFetchers[(*novel).DNS]; ok {
+		return val.FetchNovelChapter(novel, index)
 	}
 	return nil, errors.New("No such fetcher'")
 }
