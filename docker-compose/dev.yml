@@ -1,14 +1,12 @@
 version: "3"
 
 services:
-  mongo:
-    image: mongo
+  dynamodb-local:
+    container_name: dynamodb-local
+    image: "amazon/dynamodb-local:latest"
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
     ports:
-      - "127.0.0.1:27017:27017"
-
-  mongo-express:
-    image: mongo-express
-    links:
-      - mongo
-    ports:
-      - "127.0.0.1:27018:8081"
+      - "8000:8000"
+    volumes:
+      - "./dynamodb-data:/home/dynamodblocal/data"
+    working_dir: /home/dynamodblocal
