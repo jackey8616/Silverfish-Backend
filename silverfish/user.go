@@ -29,7 +29,7 @@ func (u *User) findByAccount(account string) (*entity.User, error) {
 		return nil, marshalErr
 	}
 
-	keyCond := expression.Key("account").Equal(expression.Value(accountString))
+	keyCond := expression.Key("Account").Equal(expression.Value(accountString))
 	result, err := u.userInf.FindOne(&keyCond, &entity.User{})
 	if err != nil {
 		return nil, err
