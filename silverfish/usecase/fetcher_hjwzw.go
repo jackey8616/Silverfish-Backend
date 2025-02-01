@@ -56,7 +56,7 @@ func (fh *FetcherHjwzw) CrawlNovel(url *string) (*entity.Novel, error) {
 		return nil, docErr
 	}
 
-	id := fh.GenerateID(url)
+	id := fh.GenerateId(url)
 	info, infoErr := fh.FetchNovelInfo(id, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -81,7 +81,7 @@ func (fh *FetcherHjwzw) CrawlNovel(url *string) (*entity.Novel, error) {
 }
 
 // FetchNovelInfo export
-func (fh *FetcherHjwzw) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
+func (fh *FetcherHjwzw) FetchNovelInfo(novelId *string, doc *goquery.Document) (*entity.NovelInfo, error) {
 	title, ok0 := doc.Find("meta[property='og:novel:book_name']").Attr("content")
 	author, ok1 := doc.Find("meta[property='og:novel:author']").Attr("content")
 	description, ok2 := doc.Find("meta[property='og:description']").Attr("content")
@@ -92,7 +92,7 @@ func (fh *FetcherHjwzw) FetchNovelInfo(novelID *string, doc *goquery.Document) (
 
 	return &entity.NovelInfo{
 		IsEnable:      true,
-		NovelID:       *novelID,
+		NovelId:       *novelId,
 		Title:         title,
 		Author:        author,
 		Description:   description,
@@ -127,7 +127,7 @@ func (fh *FetcherHjwzw) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, err
 		return nil, docErr
 	}
 
-	info, infoErr := fh.FetchNovelInfo(&novel.NovelID, doc)
+	info, infoErr := fh.FetchNovelInfo(&novel.NovelId, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
 	}

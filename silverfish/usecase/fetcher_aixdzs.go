@@ -53,7 +53,7 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 		return nil, docErr
 	}
 
-	id := fa.GenerateID(url)
+	id := fa.GenerateId(url)
 	info, infoErr := fa.FetchNovelInfo(id, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -78,7 +78,7 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 }
 
 // FetchNovelInfo export
-func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
+func (fa *FetcherAixdzs) FetchNovelInfo(novelId *string, doc *goquery.Document) (*entity.NovelInfo, error) {
 	title := strings.Replace(doc.Find("div.d_info > h1").Text(), "下載", "", 1)
 	author := doc.Find("div.d_ac.fdl > ul > li:nth-of-type(1) > a").Text()
 	description := doc.Find("div.d_co").Text()
@@ -89,7 +89,7 @@ func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) 
 
 	return &entity.NovelInfo{
 		IsEnable:      true,
-		NovelID:       *novelID,
+		NovelId:       *novelId,
 		Title:         fa.decoder.ConvertString(title),
 		Author:        fa.decoder.ConvertString(author),
 		Description:   fa.decoder.ConvertString(description),
@@ -124,7 +124,7 @@ func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, er
 		return nil, docErr
 	}
 
-	info, infoErr := fa.FetchNovelInfo(&novel.NovelID, doc)
+	info, infoErr := fa.FetchNovelInfo(&novel.NovelId, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
 	}

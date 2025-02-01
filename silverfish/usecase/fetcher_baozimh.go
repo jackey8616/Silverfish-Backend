@@ -36,7 +36,7 @@ func (fb *FetcherBaozimh) CrawlComic(url *string) (*entity.Comic, error) {
 		return nil, docErr
 	}
 
-	id := fb.GenerateID(url)
+	id := fb.GenerateId(url)
 	info, infoErr := fb.FetchComicInfo(id, doc, nil)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -56,7 +56,7 @@ func (fb *FetcherBaozimh) CrawlComic(url *string) (*entity.Comic, error) {
 }
 
 // FetchComicInfo export
-func (fb *FetcherBaozimh) FetchComicInfo(comicID *string, doc *goquery.Document, cookie []*http.Cookie) (*entity.ComicInfo, error) {
+func (fb *FetcherBaozimh) FetchComicInfo(comicId *string, doc *goquery.Document, cookie []*http.Cookie) (*entity.ComicInfo, error) {
 	title, titleOk := doc.Find("meta[name='og:novel:book_name']").Attr("content")
 	author, authorOk := doc.Find("meta[name='og:novel:author']").Attr("content")
 	description := strings.TrimSpace(strings.Replace(doc.Find("p.comics-detail__desc.overflow-hidden").Text(), `\n`, ``, -1))
@@ -67,7 +67,7 @@ func (fb *FetcherBaozimh) FetchComicInfo(comicID *string, doc *goquery.Document,
 
 	return &entity.ComicInfo{
 		IsEnable:      true,
-		ComicID:       *comicID,
+		ComicId:       *comicId,
 		Title:         title,
 		Author:        author,
 		Description:   description,
@@ -115,7 +115,7 @@ func (fb *FetcherBaozimh) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 		return nil, docErr
 	}
 
-	info, infoErr := fb.FetchComicInfo(&comic.ComicID, doc, nil)
+	info, infoErr := fb.FetchComicInfo(&comic.ComicId, doc, nil)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
 	}

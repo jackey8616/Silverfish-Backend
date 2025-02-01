@@ -43,7 +43,7 @@ func (fm *FetcherMangabz) CrawlComic(url *string) (*entity.Comic, error) {
 		return nil, docErr
 	}
 
-	id := fm.GenerateID(url)
+	id := fm.GenerateId(url)
 	info, infoErr := fm.FetchComicInfo(id, doc, nil)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -63,7 +63,7 @@ func (fm *FetcherMangabz) CrawlComic(url *string) (*entity.Comic, error) {
 }
 
 // FetchComicInfo export
-func (fm *FetcherMangabz) FetchComicInfo(comicID *string, doc *goquery.Document, cookie []*http.Cookie) (*entity.ComicInfo, error) {
+func (fm *FetcherMangabz) FetchComicInfo(comicId *string, doc *goquery.Document, cookie []*http.Cookie) (*entity.ComicInfo, error) {
 	title := doc.Find("p.detail-info-title").Text()
 	author := doc.Find("p.detail-info-tip > span > a").Text()
 	description := doc.Find("p.detail-info-content").Text()
@@ -74,7 +74,7 @@ func (fm *FetcherMangabz) FetchComicInfo(comicID *string, doc *goquery.Document,
 
 	return &entity.ComicInfo{
 		IsEnable:      true,
-		ComicID:       *comicID,
+		ComicId:       *comicId,
 		Title:         title,
 		Author:        author,
 		Description:   description,
@@ -112,7 +112,7 @@ func (fm *FetcherMangabz) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 		return nil, docErr
 	}
 
-	info, infoErr := fm.FetchComicInfo(&comic.ComicID, doc, nil)
+	info, infoErr := fm.FetchComicInfo(&comic.ComicId, doc, nil)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
 	}
@@ -136,8 +136,8 @@ func (fm *FetcherMangabz) FetchComicChapter(comic *entity.Comic, index int) ([]s
 	}
 	firstPage, _ := doc.Html()
 	pageExp, _ := regexp.Compile(`var MANGABZ_IMAGE_COUNT=.*?;`)
-	midExp, _ := regexp.Compile(`var MANGABZ_MID=.*?;`)
-	cidExp, _ := regexp.Compile(`var MANGABZ_CID=.*?;`)
+	midExp, _ := regexp.Compile(`var MANGABZ_MId=.*?;`)
+	cidExp, _ := regexp.Compile(`var MANGABZ_CId=.*?;`)
 	dtExp, _ := regexp.Compile(`var MANGABZ_VIEWSIGN_DT=\".*?\";`)
 	signExp, _ := regexp.Compile(`var MANGABZ_VIEWSIGN=\".*?\";`)
 	pageCountStr := strings.TrimRight(pageExp.FindString(firstPage)[24:], ";")

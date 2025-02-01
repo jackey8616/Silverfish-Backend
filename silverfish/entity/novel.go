@@ -1,11 +1,17 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+)
 
 // NovelInfo export
 type NovelInfo struct {
-	IsEnable      bool      `json:"isEnable" bson:"isEnable"`
-	NovelID       string    `json:"novelID" bson:"novelID"`
+	IsEnable      bool      `json:"IsEnable" bson:"IsEnable"`
+	NovelId       string    `json:"NovelId" bson:"NovelId"`
 	Title         string    `json:"title" bson:"title"`
 	Author        string    `json:"author" bson:"author"`
 	Description   string    `json:"description" bson:"description"`
@@ -15,8 +21,9 @@ type NovelInfo struct {
 
 // Novel export
 type Novel struct {
-	IsEnable      bool           `json:"isEnable" bson:"isEnable"`
-	NovelID       string         `json:"novelID" bson:"novelID"`
+	Id            string         `json:"id" bson:"id"`
+	IsEnable      bool           `json:"IsEnable" bson:"IsEnable"`
+	NovelId       string         `json:"NovelId" bson:"NovelId"`
 	DNS           string         `json:"dns" bson:"dns"`
 	Title         string         `json:"title" bson:"title"`
 	Author        string         `json:"author" bson:"author"`
@@ -37,7 +44,7 @@ type NovelChapter struct {
 func (novel *Novel) GetNovelInfo() *NovelInfo {
 	return &NovelInfo{
 		IsEnable:      novel.IsEnable,
-		NovelID:       novel.NovelID,
+		NovelId:       novel.NovelId,
 		Title:         novel.Title,
 		Author:        novel.Author,
 		CoverURL:      novel.CoverURL,
@@ -48,9 +55,27 @@ func (novel *Novel) GetNovelInfo() *NovelInfo {
 // SetNovelInfo export
 func (novel *Novel) SetNovelInfo(info *NovelInfo) {
 	novel.IsEnable = info.IsEnable
-	novel.NovelID = info.NovelID
+	novel.NovelId = info.NovelId
 	novel.Title = info.Title
 	novel.Author = info.Author
 	novel.CoverURL = info.CoverURL
 	novel.LastCrawlTime = info.LastCrawlTime
+}
+
+func (novel *Novel) TransformKey() (map[string]types.AttributeValue, error) {
+	return attributevalue.MarshalMap(map[string]string{
+		"NovelId": novel.NovelId,
+	})
+}
+
+func (novel *Novel) TransformToUpdateBuilder() expression.UpdateBuilder {
+	return expression.Set(expression.Name("IsEnable"), expression.Value(novel.IsEnable)).
+		Set(expression.Name("DNS"), expression.Value(novel.DNS)).
+		Set(expression.Name("Title"), expression.Value(novel.Title)).
+		Set(expression.Name("Author"), expression.Value(novel.Author)).
+		Set(expression.Name("Description"), expression.Value(novel.Description)).
+		Set(expression.Name("URL"), expression.Value(novel.URL)).
+		Set(expression.Name("CoverURL"), expression.Value(novel.CoverURL)).
+		Set(expression.Name("Chapters"), expression.Value(novel.Chapters)).
+		Set(expression.Name("LastCrawlTime"), expression.Value(novel.LastCrawlTime))
 }

@@ -39,7 +39,7 @@ func (f9 *Fetcher99Comic) FetchComicInfo(url *string) (*entity.Comic, error) {
 		return nil, docErr
 	}
 
-	id := f9.GenerateID(url)
+	id := f9.GenerateId(url)
 	title := doc.Find("div.comic_deCon.autoHeight > h1").Text()
 	author := strings.Split(doc.Find("ul.comic_deCon_liO > li:first-child").Text(), "：")[1]
 	description := strings.Replace(doc.Find("p.comic_deCon_d").Text(), " ", "", -1)
@@ -64,7 +64,7 @@ func (f9 *Fetcher99Comic) FetchComicInfo(url *string) (*entity.Comic, error) {
 	})
 
 	return &entity.Comic{
-		ComicID:       *id,
+		ComicId:       *id,
 		DNS:           *f9.dns,
 		Title:         title,
 		Author:        author,

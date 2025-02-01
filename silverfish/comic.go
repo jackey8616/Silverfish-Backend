@@ -8,14 +8,15 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Comic export
 type Comic struct {
 	auth          *Auth
-	comicInf      *entity.MongoInf
+	comicInf      *entity.DynamoInf
 	comicFetchers map[string]interf.IComicFetcher
 	crawlDuration int
 }
@@ -23,7 +24,7 @@ type Comic struct {
 // NewComic export
 func NewComic(
 	auth *Auth,
-	comicInf *entity.MongoInf,
+	comicInf *entity.DynamoInf,
 	comicFetchers map[string]interf.IComicFetcher,
 	crawlDuration int,
 ) *Comic {
@@ -33,6 +34,21 @@ func NewComic(
 	c.comicFetchers = comicFetchers
 	c.crawlDuration = crawlDuration
 	return c
+}
+
+func (c *Comic) findByComicId(comicId string) (*entity.Comic, error) {
+	comicIdString, marshalErr := attributevalue.Marshal(comicId)
+	if marshalErr != nil {
+		return nil, marshalErr
+	}
+
+	keyCond := expression.Key("ComicId").Equal(expression.Value(comicIdString))
+	result, err := c.comicInf.FindOne(&keyCond, &entity.Comic{})
+	if err != nil {
+		return nil, err
+	}
+
+	return result.(*entity.Comic), nil
 }
 
 // GetFetchers export
@@ -46,52 +62,83 @@ func (c *Comic) GetFetcherNameLists() []string {
 
 // GetComics export
 func (c *Comic) GetComics(shouldFetchDisable bool) (*[]entity.ComicInfo, error) {
-	selector := bson.M{"isEnable": true}
-	if shouldFetchDisable == true {
-		selector = nil
+	var keyCond expression.KeyConditionBuilder
+	if shouldFetchDisable == false {
+		keyCond = expression.Key("IsEnable").Equal(expression.Value(true))
 	}
-	result, err := c.comicInf.FindSelectAll(selector, bson.M{
-		"isEnable": 1, "comicID": 1, "coverUrl": 1, "title": 1, "author": 1, "lastCrawlTime": 1}, &[]entity.ComicInfo{})
+
+	projConf := expression.NamesList(
+		expression.Name("IsEnable"),
+		expression.Name("ComicId"),
+		expression.Name("CoverUrl"),
+		expression.Name("Title"),
+		expression.Name("Author"),
+		expression.Name("LastCrawlTime"),
+	)
+
+	result, err := c.comicInf.FindSelectAll(&keyCond, &projConf, &[]entity.ComicInfo{})
 	return result.(*[]entity.ComicInfo), err
 }
 
-// GetComicByID export
-func (c *Comic) GetComicByID(comicID *string) (*entity.Comic, error) {
-	result, err := c.comicInf.FindOne(bson.M{"comicID": *comicID}, &entity.Comic{})
-	if err != nil {
-		return nil, err
+func (c *Comic) findByComicUrl(comicUrl string) (*entity.Comic, error) {
+	comicUrlString, marshalErr := attributevalue.Marshal(comicUrl)
+	if marshalErr != nil {
+		return nil, marshalErr
 	}
 
-	comic := result.(*entity.Comic)
-	if time.Since(comic.LastCrawlTime).Hours() > 24 {
-		lastCrawlTime := comic.LastCrawlTime
-		comic, err = c.comicFetchers[comic.DNS].UpdateComicInfo(comic)
-		if err != nil {
-			logrus.Print(err.Error())
-			return nil, err
-		}
-		c.comicInf.Update(bson.M{"comicID": *comicID}, comic)
-		logrus.Printf("Updated comic <comic_id: %s, title: %s> since %s", comic.ComicID, comic.Title, lastCrawlTime)
+	keyCond := expression.Key("comicURL").Equal(expression.Value(comicUrlString))
+	result, err := c.comicInf.FindOne(&keyCond, &entity.Comic{})
+	if err != nil {
+		return nil, err
 	}
 
 	return result.(*entity.Comic), nil
 }
 
-// RemoveComicByID export
-func (c *Comic) RemoveComicByID(comicID *string) error {
-	err := c.comicInf.Remove(bson.M{"comicID": *comicID})
+// GetComicById export
+func (c *Comic) GetComicById(comicId *string) (*entity.Comic, error) {
+	comic, err := c.findByComicId(*comicId)
+	if err != nil {
+		return nil, err
+	}
+
+	if time.Since(comic.LastCrawlTime).Hours() > 24 {
+		lastCrawlTime := comic.LastCrawlTime
+		toUpdateComic, err := c.comicFetchers[comic.DNS].UpdateComicInfo(comic)
+		if err != nil {
+			logrus.Print(err.Error())
+			return nil, err
+		}
+		key, marshalErr := toUpdateComic.TransformKey()
+		if marshalErr != nil {
+			return nil, marshalErr
+		}
+		data := toUpdateComic.TransformToUpdateBuilder()
+		c.comicInf.Update(key, nil, &data)
+		logrus.Printf("Updated comic <comic_id: %s, title: %s> since %s", comic.ComicId, comic.Title, lastCrawlTime)
+	}
+
+	return comic, nil
+}
+
+// RemoveComicById export
+func (c *Comic) RemoveComicById(comicId *string) error {
+	key, marshalErr := attributevalue.MarshalMap(map[string]string{
+		"ComicId": *comicId,
+	})
+	if marshalErr != nil {
+		return marshalErr
+	}
+
+	err := c.comicInf.Delete(key)
 	if err != nil {
 		return err
 	}
-	err = c.auth.userInf.Update(bson.M{
-		fmt.Sprintf(`bookmark.comic.%s`, *comicID): bson.M{
-			"$exists": true,
-		},
-	}, bson.M{
-		"$unset": bson.M{
-			fmt.Sprintf(`bookmark.comic.%s`, *comicID): "",
-		},
-	})
+
+	comicIdBookmarkKey := fmt.Sprintf(`bookmark.comic.%s`, *comicId)
+	cond := expression.AttributeExists(expression.Name(comicIdBookmarkKey))
+	updateCond := expression.Remove(expression.Name(comicIdBookmarkKey))
+	err = c.auth.userInf.Update(nil, &cond, &updateCond)
 	if err != nil && err.Error() != "not found" {
 		return err
 	}
@@ -100,7 +147,7 @@ func (c *Comic) RemoveComicByID(comicID *string) error {
 
 // AddComicByURL export
 func (c *Comic) AddComicByURL(comicURL *string) (*entity.Comic, error) {
-	result, err := c.comicInf.FindOne(bson.M{"comicURL": *comicURL}, &entity.Comic{})
+	comic, err := c.findByComicUrl(*comicURL)
 	if err != nil {
 		for _, v := range c.comicFetchers {
 			if v.Match(comicURL) {
@@ -109,41 +156,49 @@ func (c *Comic) AddComicByURL(comicURL *string) (*entity.Comic, error) {
 					logrus.Print(err.Error())
 					return nil, err
 				}
-				c.comicInf.Upsert(bson.M{"comicID": record.ComicID}, record)
+				data, err := attributevalue.MarshalMap(record)
+				if err != nil {
+					return nil, err
+				}
+				c.comicInf.Upsert(data)
 				return record, nil
 			}
 		}
 		return nil, errors.New("No suit fetcher")
 	}
 
-	return result.(*entity.Comic), nil
+	return comic, nil
 }
 
 // GetComicChapter export
-func (c *Comic) GetComicChapter(comicID, chapterIndex *string) ([]string, error) {
+func (c *Comic) GetComicChapter(comicId, chapterIndex *string) ([]string, error) {
 	index, err := strconv.Atoi(*chapterIndex)
 	if err != nil {
 		return nil, errors.New("Invalid chapter index")
 	}
-	query, err := c.comicInf.FindOne(bson.M{"comicID": comicID}, &entity.Comic{})
+	comic, err := c.findByComicId(*comicId)
 	if err != nil {
 		return nil, err
 	}
-	record := query.(*entity.Comic)
-	if len((*record).Chapters) < index {
+	if len((*comic).Chapters) < index {
 		return nil, errors.New("Wrong Index")
-	} else if val, ok := c.comicFetchers[(*record).DNS]; ok {
-		if len(record.Chapters[index].ImageURL) == 0 {
-			imgURL, err := val.FetchComicChapter(record, index)
+	} else if val, ok := c.comicFetchers[(*comic).DNS]; ok {
+		if len(comic.Chapters[index].ImageURL) == 0 {
+			imgURL, err := val.FetchComicChapter(comic, index)
 			if err != nil {
 				logrus.Print(err.Error())
 				return nil, err
 			}
-			record.Chapters[index].ImageURL = imgURL
-			c.comicInf.Update(bson.M{"comicID": record.ComicID}, record)
-			logrus.Printf("Detect <comic:%s> chapter <index: %s/ title: %s> not crawl yet. Crawled.", record.Title, *chapterIndex, record.Chapters[index].Title)
+			comic.Chapters[index].ImageURL = imgURL
+			key, marshalErr := comic.TransformKey()
+			if marshalErr != nil {
+				return nil, marshalErr
+			}
+			data := comic.TransformToUpdateBuilder()
+			c.comicInf.Update(key, nil, &data)
+			logrus.Printf("Detect <comic:%s> chapter <index: %s/ title: %s> not crawl yet. Crawled.", comic.Title, *chapterIndex, comic.Chapters[index].Title)
 		}
-		return record.Chapters[index].ImageURL, nil
+		return comic.Chapters[index].ImageURL, nil
 	}
 
 	return nil, errors.New("No such fetcher'")

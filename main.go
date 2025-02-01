@@ -1,30 +1,40 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"silverfish/router"
+	"silverfish/silverfish"
 
-	router "silverfish/router"
-	silverfish "silverfish/silverfish"
-	entity "silverfish/silverfish/entity"
-
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/mgo.v2"
 )
 
-func dbInit(mongoHost *string) *mgo.Session {
-	session, err := mgo.Dial(*mongoHost)
+func CreateLocalClient() *dynamodb.Client {
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion("us-east-1"),
+		config.WithEndpointResolver(aws.EndpointResolverFunc(
+			func(service, region string) (aws.Endpoint, error) {
+				return aws.Endpoint{URL: "http://localhost:8000"}, nil
+			})),
+		config.WithCredentialsProvider(credentials.StaticCredentialsProvider{
+			Value: aws.Credentials{
+				AccessKeyID: "dummy", SecretAccessKey: "dummy", SessionToken: "dummy",
+				Source: "Hard-coded credentials; values are irrelevant for local DynamoDB",
+			},
+		}),
+	)
 	if err != nil {
-		logrus.Fatal(errors.Wrap(err, "...while initing: "))
+		panic(err)
 	}
-	err = session.Ping()
-	if err != nil {
-		logrus.Fatal(errors.Wrap(err, "... while pinging: "))
-	}
-	return session
+
+	return dynamodb.NewFromConfig(cfg)
 }
 
 func main() {
@@ -33,25 +43,11 @@ func main() {
 	logrus.Printf("ConfigPath: %s, Debug: %t", configPath, config.Debug)
 
 	logrus.Printf("-> Initing MongoDB with host: %s ...", *config.DbHost)
-	session := dbInit(config.DbHost)
+	session := CreateLocalClient()
 	logrus.Print("<- MongoDB inited!")
 	logrus.Print("-> Initing Silverfish ...")
-	userCol := session.DB("silverfish").C("user")
-	userColCount, _ := userCol.Count()
-	logrus.Printf("..... User Collection documents count: %d", userColCount)
-	novelCol := session.DB("silverfish").C("novel")
-	novelColCount, _ := novelCol.Count()
-	logrus.Printf("..... Novel Collection documents count: %d", novelColCount)
-	comicCol := session.DB("silverfish").C("comic")
-	comicColCount, _ := comicCol.Count()
-	logrus.Printf("..... Comic Collection documents count: %d", comicColCount)
-	logrus.Print("... Collection inited.")
-	userInf := entity.NewMongoInf(session, userCol)
-	novelInf := entity.NewMongoInf(session, novelCol)
-	comicInf := entity.NewMongoInf(session, comicCol)
-	logrus.Print("... Collection Infrastructure inited.")
 
-	silverfishInstance := silverfish.New(config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf)
+	silverfishInstance := silverfish.New(config.HashSalt, config.CrawlDuration, session)
 	muxRouter := mux.NewRouter()
 	router := router.NewRouter(
 		config.RecaptchaKey,
@@ -74,12 +70,12 @@ func main() {
 	}).Handler(muxRouter)
 	logrus.Print("... CORS inited.")
 
-	if userColCount == 0 {
-		account := "admin"
-		password := silverfish.RandomStr(12)
-		silverfishInstance.Auth.Register(true, &account, password)
-		logrus.Printf("Detected no first user, create with `admin:%s`", *password)
-	}
+	// if userColCount == 0 {
+	// 	account := "admin"
+	// 	password := silverfish.RandomStr(12)
+	// 	silverfishInstance.Auth.Register(true, &account, password)
+	// 	logrus.Printf("Detected no first user, create with `admin:%s`", *password)
+	// }
 
 	logrus.Print("<- Silverfish inited.")
 

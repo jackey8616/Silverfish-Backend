@@ -11,7 +11,7 @@ type Bookmark struct {
 // BookmarkEntry export
 type BookmarkEntry struct {
 	Type             string    `json:"type" bson:"type"`
-	ID               string    `json:"ID" bson:"ID"`
+	Id               string    `json:"Id" bson:"Id"`
 	LastReadIndex    int       `json:"lastReadIndex" bson:"lastReadIndex"`
 	LastReadDatetime time.Time `json:"lastReadDatetime" bson:"lastReadDatetime"`
 }

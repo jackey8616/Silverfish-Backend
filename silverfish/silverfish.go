@@ -1,9 +1,11 @@
 package silverfish
 
 import (
-	entity "silverfish/silverfish/entity"
+	"silverfish/silverfish/entity"
 	interf "silverfish/silverfish/interface"
 	usecase "silverfish/silverfish/usecase"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
 // Silverfish export
@@ -19,7 +21,7 @@ type Silverfish struct {
 func New(
 	hashSalt *string,
 	crawlDuration int,
-	userInf, novelInf, comicInf *entity.MongoInf,
+	session *dynamodb.Client,
 ) *Silverfish {
 	sf := new(Silverfish)
 	novelFetchers := map[string]interf.INovelFetcher{
@@ -42,6 +44,9 @@ func New(
 		"www.ikanwzd.top":    usecase.NewFetcherIkanwzd("www.ikanwzd.top"), // Oops...
 	}
 
+	userInf := entity.NewDynamoInf(session, "Silverfish_Users")
+	novelInf := entity.NewDynamoInf(session, "Silverfish_Novels")
+	comicInf := entity.NewDynamoInf(session, "Silverfish_Comics")
 	sf.Auth = NewAuth(hashSalt, userInf)
 	sf.Novel = NewNovel(sf.Auth, novelInf, novelFetchers, crawlDuration)
 	sf.Comic = NewComic(sf.Auth, comicInf, comicFetchers, crawlDuration)

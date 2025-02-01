@@ -52,7 +52,7 @@ func (fb *FetcherBiquge) CrawlNovel(url *string) (*entity.Novel, error) {
 		return nil, docErr
 	}
 
-	id := fb.GenerateID(url)
+	id := fb.GenerateId(url)
 	info, infoErr := fb.FetchNovelInfo(id, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
@@ -72,7 +72,7 @@ func (fb *FetcherBiquge) CrawlNovel(url *string) (*entity.Novel, error) {
 }
 
 // FetchNovelInfo export
-func (fb *FetcherBiquge) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
+func (fb *FetcherBiquge) FetchNovelInfo(novelId *string, doc *goquery.Document) (*entity.NovelInfo, error) {
 	title := doc.Find("div[id='info'] > h1").Text()
 	author := doc.Find("div[id='info'] > p:nth-of-type(1)").Text()
 	author = strings.Split(author, "：")[1]
@@ -84,7 +84,7 @@ func (fb *FetcherBiquge) FetchNovelInfo(novelID *string, doc *goquery.Document) 
 
 	return &entity.NovelInfo{
 		IsEnable:      true,
-		NovelID:       *novelID,
+		NovelId:       *novelId,
 		Title:         fb.decoder.ConvertString(title),
 		Author:        fb.decoder.ConvertString(author),
 		Description:   fb.decoder.ConvertString(description),
@@ -119,7 +119,7 @@ func (fb *FetcherBiquge) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, er
 		return nil, docErr
 	}
 
-	info, infoErr := fb.FetchNovelInfo(&novel.NovelID, doc)
+	info, infoErr := fb.FetchNovelInfo(&novel.NovelId, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
 	}
