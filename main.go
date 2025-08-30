@@ -9,6 +9,7 @@ import (
 	entity "silverfish/silverfish/entity"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
@@ -28,12 +29,23 @@ func dbInit(mongoHost *string) *mgo.Session {
 }
 
 func main() {
-	configPath := os.Getenv("config")
-	config := NewConfig(&configPath)
-	logrus.Printf("ConfigPath: %s, Debug: %t", configPath, config.Debug)
+	logrus.SetFormatter(&logrus.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
+	configPath := os.Getenv("CONFIG_PATH")
+	if len(configPath) > 0 {
+		logrus.Printf("Detected config path: %s", configPath)
+		err := godotenv.Load(configPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+	}
+	config := NewConfig()
+	logrus.Printf("Debug: %t", config.Debug)
 
-	logrus.Printf("-> Initing MongoDB with host: %s ...", *config.DbHost)
-	session := dbInit(config.DbHost)
+	logrus.Printf("-> Initing MongoDB with host: %s ...", config.DbHost)
+	session := dbInit(&config.DbHost)
 	logrus.Print("<- MongoDB inited!")
 	logrus.Print("-> Initing Silverfish ...")
 	userCol := session.DB("silverfish").C("user")
@@ -51,10 +63,10 @@ func main() {
 	comicInf := entity.NewMongoInf(session, comicCol)
 	logrus.Print("... Collection Infrastructure inited.")
 
-	silverfishInstance := silverfish.New(config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf)
+	silverfishInstance := silverfish.New(&config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf)
 	muxRouter := mux.NewRouter()
 	router := router.NewRouter(
-		config.RecaptchaKey,
+		&config.RecaptchaKey,
 		silverfishInstance.Auth,
 		silverfishInstance.Admin,
 		silverfishInstance.User,
