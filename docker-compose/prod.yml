@@ -9,6 +9,8 @@ services:
     restart: unless-stopped
     networks:
     - default
+    ports:
+    - 17031:27017
 
   backend:
     container_name: silverfish-backend

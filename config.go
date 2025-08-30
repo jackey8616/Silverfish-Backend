@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
 
@@ -55,6 +56,13 @@ func getEnvWithDefault[T int | float64 | bool | string](key string, fallback T) 
 
 // NewConfig export
 func NewConfig() *Config {
+	envAllowedOrigins := getEnvWithDefault("ALLOW_ORIGINS", "[\"https://silverfish.cc\"]")
+	var allowOrigins []string
+	err := json.Unmarshal([]byte(envAllowedOrigins), &allowOrigins)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
 	c := &Config{
 		Debug:         getEnvWithDefault("DEBUG", false),
 		SSL:           getEnvWithDefault("SSL", true),
@@ -63,9 +71,9 @@ func NewConfig() *Config {
 		Port:          getEnvWithDefault("PORT", "8080"),
 		DbHost:        getEnvWithDefault("DB_HOST", "mongo:27017"),
 		HashSalt:      getEnvWithDefault("HASH_SALT", "THIS_IS_A_VERY_COMPLICATED_HASH_SALT_FOR_SILVERFISH_BACKEND"),
-		RecaptchaKey:  getEnvWithDefault("RECAPTCHA_KEY", ""),
-		AllowOrigin:   []string{"https://silverfish.cc"},
-		CrawlDuration: 60,
+		RecaptchaKey:  os.Getenv("RECAPTCHA_KEY"),
+		AllowOrigin:   allowOrigins,
+		CrawlDuration: getEnvWithDefault("CRAWL_DURATION", 60),
 	}
 	if c.Debug {
 		logrus.SetLevel(logrus.DebugLevel)

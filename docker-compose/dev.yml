@@ -4,7 +4,7 @@ services:
   mongo:
     image: mongo:4.2
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:17031:27017"
 
   mongo-express:
     image: mongo-express
