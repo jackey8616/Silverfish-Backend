@@ -1,21 +1,25 @@
-FROM golang:1.25.0-alpine
+FROM golang:1.25.0-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /usr/local/bin/silverfish-backend
+
+# ---
+
+FROM alpine:3.20
 
 LABEL maintainer=clooooode<jackey8616@gmail.com>
 
+RUN apk add --no-cache \
+    chromium
+
 EXPOSE 10000
 
-WORKDIR /
+COPY --from=builder /usr/local/bin/silverfish-backend /usr/local/bin/silverfish-backend
 
-COPY router /router
-COPY silverfish /silverfish
-COPY config.go main.go go.mod go.sum /
-
-RUN apk add \
-    build-base \
-    chromium \
-    nss-dev
-
-RUN go version
-RUN go mod download
-
-ENTRYPOINT ["env", "config=config.json", "go", "run", "main.go", "config.go"]
+CMD ["/usr/local/bin/silverfish-backend"]

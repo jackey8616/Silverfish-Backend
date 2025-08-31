@@ -9,8 +9,11 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/djimenez/iconv-go"
 	"github.com/pkg/errors"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/encoding/traditionalchinese"
+	"golang.org/x/text/transform"
 
 	"github.com/kenshaw/baseconv"
 )
@@ -81,10 +84,18 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Do
 
 	// Convert the designated charset HTML to utf-8 encoded HTML.
 	// `charset` being one of the charsets known by the iconv package.
-	utfBody, err := iconv.NewReader(res.Body, charset, "utf-8")
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "When FetchDocWithEncoding Convert UTF-8")
+	var enc encoding.Encoding
+	switch strings.ToLower(charset) {
+	case "gbk", "gb2312":
+		enc = simplifiedchinese.GBK
+	case "gb18030":
+		enc = simplifiedchinese.GB18030
+	case "big5":
+		enc = traditionalchinese.Big5
+	default:
+		return nil, nil, fmt.Errorf("unsupported charset: %s", charset)
 	}
+	utfBody := transform.NewReader(res.Body, enc.NewDecoder())
 
 	// use utfBody using goquery
 	doc, err := goquery.NewDocumentFromReader(utfBody)
