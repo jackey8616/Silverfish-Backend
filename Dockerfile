@@ -2,7 +2,7 @@ FROM golang:1.25.0-alpine
 
 LABEL maintainer=clooooode<jackey8616@gmail.com>
 
-EXPOSE 8080
+EXPOSE 10000
 
 WORKDIR /
 
