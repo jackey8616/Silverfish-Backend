@@ -9,6 +9,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/sirupsen/logrus"
 )
 
@@ -88,7 +89,12 @@ func (fj *FetcherJmd8) FetchComicInfo(comicID *string, doc *goquery.Document, co
 // FetchChapterInfo export
 func (fj *FetcherJmd8) FetchChapterInfo(doc *goquery.Document, cookie []*http.Cookie, title, url string) []entity.ComicChapter {
 	chapters := []entity.ComicChapter{}
-	browser := rod.New()
+
+	launcher := launcher.New()
+	launcher = launcher.Bin("/usr/bin/chromium")
+	launcher = launcher.Headless(true).Set("no-sandbox")
+
+	browser := rod.New().ControlURL(launcher.MustLaunch())
 	defer browser.MustClose()
 
 	page := browser.MustConnect().MustPage(url)

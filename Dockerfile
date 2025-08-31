@@ -16,7 +16,18 @@ FROM alpine:3.20
 LABEL maintainer=clooooode<jackey8616@gmail.com>
 
 RUN apk add --no-cache \
-    chromium
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    dbus \
+    libxml2 \
+    libxslt \
+    libjpeg-turbo \
+    libpng \
+    fontconfig \
+    glib
+RUN which chromium
 
 EXPOSE 10000
 
