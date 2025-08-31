@@ -44,7 +44,7 @@ func main() {
 	config := NewConfig()
 	logrus.Printf("Debug: %t", config.Debug)
 
-	logrus.Printf("-> Initing MongoDB with host: %s ...", config.DbHost)
+	logrus.Printf("-> Initing MongoDB")
 	session := dbInit(&config.DbHost)
 	logrus.Print("<- MongoDB inited!")
 	logrus.Print("-> Initing Silverfish ...")
@@ -84,6 +84,7 @@ func main() {
 		AllowCredentials: false,
 		Debug:            config.Debug,
 	}).Handler(muxRouter)
+	logrus.Print("... CORS Origins: ", config.AllowOrigin)
 	logrus.Print("... CORS inited.")
 
 	if userColCount == 0 {
