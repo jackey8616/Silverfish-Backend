@@ -82,7 +82,7 @@ func (fi *FetcherIkanwzd) FetchComicInfo(comicID *string, doc *goquery.Document,
 // FetchChapterInfo export
 func (fi *FetcherIkanwzd) FetchChapterInfo(doc *goquery.Document, cookie []*http.Cookie, title, url string) []entity.ComicChapter {
 	chapters := []entity.ComicChapter{}
-	browser := rod.New()
+	browser := fi.GenerateRodBrowser()
 	defer browser.MustClose()
 
 	page := browser.MustConnect().MustPage(url)
@@ -127,10 +127,10 @@ func (fi *FetcherIkanwzd) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 // FetchComicChapter export
 func (fi *FetcherIkanwzd) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
-	browser := rod.New()
+	url := fi.GetChapterURL(comic, comic.Chapters[index].URL)
+	browser := fi.GenerateRodBrowser()
 	defer browser.MustClose()
 
-	url := fi.GetChapterURL(comic, comic.Chapters[index].URL)
 	page := browser.MustConnect().MustPage(*url)
 	els, _ := page.Elements("img.lazy")
 	for i := 0; i < len(els); i++ {

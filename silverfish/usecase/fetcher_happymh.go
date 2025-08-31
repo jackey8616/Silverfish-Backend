@@ -131,7 +131,7 @@ func (fh *FetcherHappymh) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, e
 // FetchComicChapter export
 func (fh *FetcherHappymh) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
-	browser := rod.New()
+	browser := fh.GenerateRodBrowser()
 	defer browser.MustClose()
 
 	page := browser.MustConnect().MustPage(comic.Chapters[index].URL)

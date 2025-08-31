@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/pkg/errors"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -103,6 +105,24 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Do
 		return nil, nil, errors.Wrap(err, "When FetchDocWithEncoding")
 	}
 	return doc, res.Cookies(), nil
+}
+
+// GenerateRodBrowser export
+func (f *Fetcher) GenerateRodBrowser() *rod.Browser {
+	launcher := launcher.
+		New().
+		Bin("/usr/bin/chromium").
+		Headless(true).
+		Set("disable-gpu").
+		Set("disable-dev-shm-usage").
+		Set("no-sandbox").
+		Set("no-first-run").
+		Set("disable-background-networking").
+		Set("disable-default-apps").
+		Set("disable-extensions").
+		Set("disable-sync")
+
+	return rod.New().ControlURL(launcher.MustLaunch())
 }
 
 // GenerateID export

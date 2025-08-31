@@ -9,7 +9,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/launcher"
 	"github.com/sirupsen/logrus"
 )
 
@@ -89,12 +88,7 @@ func (fj *FetcherJmd8) FetchComicInfo(comicID *string, doc *goquery.Document, co
 // FetchChapterInfo export
 func (fj *FetcherJmd8) FetchChapterInfo(doc *goquery.Document, cookie []*http.Cookie, title, url string) []entity.ComicChapter {
 	chapters := []entity.ComicChapter{}
-
-	launcher := launcher.New()
-	launcher = launcher.Bin("/usr/bin/chromium")
-	launcher = launcher.Headless(true).Set("no-sandbox")
-
-	browser := rod.New().ControlURL(launcher.MustLaunch())
+	browser := fj.GenerateRodBrowser()
 	defer browser.MustClose()
 
 	page := browser.MustConnect().MustPage(url)
@@ -140,10 +134,10 @@ func (fj *FetcherJmd8) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, erro
 // FetchComicChapter export
 func (fj *FetcherJmd8) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
-	browser := rod.New()
+	url := fj.GetChapterURL(comic, comic.Chapters[index].URL)
+	browser := fj.GenerateRodBrowser()
 	defer browser.MustClose()
 
-	url := fj.GetChapterURL(comic, comic.Chapters[index].URL)
 	page := browser.MustConnect().MustPage(*url)
 	page.Race().Element("main#main > div > center > div").MustHandle(func(e *rod.Element) {
 		eles, _ := e.Elements("img")

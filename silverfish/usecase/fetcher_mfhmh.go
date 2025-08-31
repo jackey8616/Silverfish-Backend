@@ -84,7 +84,7 @@ func (fm *FetcherMfhmh) FetchComicInfo(comicID *string, doc *goquery.Document, c
 // FetchChapterInfo export
 func (fm *FetcherMfhmh) FetchChapterInfo(doc *goquery.Document, cookie []*http.Cookie, title, url string) []entity.ComicChapter {
 	chapters := []entity.ComicChapter{}
-	browser := rod.New()
+	browser := fm.GenerateRodBrowser()
 	defer browser.MustClose()
 
 	page := browser.MustConnect().MustPage(url)
@@ -132,7 +132,7 @@ func (fm *FetcherMfhmh) UpdateComicInfo(comic *entity.Comic) (*entity.Comic, err
 // FetchComicChapter export
 func (fm *FetcherMfhmh) FetchComicChapter(comic *entity.Comic, index int) ([]string, error) {
 	comicURLs := []string{}
-	browser := rod.New()
+	browser := fm.GenerateRodBrowser()
 	defer browser.MustClose()
 
 	page := browser.MustConnect().MustPage(comic.Chapters[index].URL)
