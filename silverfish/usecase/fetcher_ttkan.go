@@ -151,9 +151,16 @@ func (ft *FetcherTtkan) FetchNovelChapter(novel *entity.Novel, index int) (*stri
 	}
 
 	content := doc.Find("div.content").First()
-	// Strip non-text injections: bookmark anchor at the top, the
-	// mid-content `<center><div class="mobadsq"></div></center>` ad
-	// block, and amp-* / script nodes.
+	// `div.content` wraps the chapter body AND page chrome that follows
+	// it: a `div#div_content_end` sentinel and then a
+	// `div.social_share_frame` widget (multiple amp-social-share
+	// children). The page itself uses #div_content_end to mark "real
+	// content ends here", so chop everything from there onward, then
+	// strip in-content junk (bookmark anchor at the top, the mid-body
+	// `<center><div class="mobadsq"></div></center>` ad block, and
+	// any stray amp-* / script nodes).
+	content.Find("#div_content_end").NextAll().Remove()
+	content.Find("#div_content_end").Remove()
 	content.Find("a.anchor_bookmark, center, amp-img, amp-analytics, script").Remove()
 	html, _ := content.Html()
 	return ft.Filter(&html), nil
