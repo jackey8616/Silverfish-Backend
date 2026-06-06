@@ -130,7 +130,7 @@ func (c *Comic) GetComicChapter(comicID, chapterIndex *string) ([]string, error)
 		return nil, err
 	}
 	record := query.(*entity.Comic)
-	if len((*record).Chapters) < index {
+	if index < 0 || index >= len((*record).Chapters) {
 		return nil, errors.New("Wrong Index")
 	} else if val, ok := c.comicFetchers[(*record).DNS]; ok {
 		if len(record.Chapters[index].ImageURL) == 0 {

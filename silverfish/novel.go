@@ -131,7 +131,7 @@ func (n *Novel) GetNovelChapter(novelID, chapterIndex *string) (*string, error) 
 		return nil, err
 	}
 	record := query.(*entity.Novel)
-	if len((*record).Chapters) < index {
+	if index < 0 || index >= len((*record).Chapters) {
 		return nil, errors.New("Wrong Index")
 	} else if val, ok := n.novelFetchers[(*record).DNS]; ok {
 		return val.FetchNovelChapter(record, index)
