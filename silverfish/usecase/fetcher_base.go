@@ -108,6 +108,25 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Do
 	return doc, res.Cookies(), nil
 }
 
+// FetchDocViaRod loads the URL in headless Chromium and returns a
+// goquery.Document built from the post-render HTML, for sites whose info
+// page is JS-injected and returns near-empty HTML to plain HTTP fetches.
+// Rod's Must* APIs panic on failure; we recover and convert to error so a
+// crawler glitch doesn't take down the whole server.
+func (f *Fetcher) FetchDocViaRod(url *string) (doc *goquery.Document, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("FetchDocViaRod: %v", r)
+		}
+	}()
+	browser := f.GenerateRodBrowser()
+	defer browser.MustClose()
+
+	page := browser.MustConnect().MustPage(*url).MustWaitLoad()
+	html := page.MustElement("html").MustHTML()
+	return goquery.NewDocumentFromReader(strings.NewReader(html))
+}
+
 // GenerateRodBrowser export
 func (f *Fetcher) GenerateRodBrowser() *rod.Browser {
 	l := launcher.
@@ -121,7 +140,11 @@ func (f *Fetcher) GenerateRodBrowser() *rod.Browser {
 		Set("disable-background-networking").
 		Set("disable-default-apps").
 		Set("disable-extensions").
-		Set("disable-sync")
+		Set("disable-sync").
+		// Match the plain HTTP path (InsecureSkipVerify) — several upstream
+		// novel sites run on long-expired self-signed or stale CA certs and
+		// Chromium otherwise refuses to navigate.
+		Set("ignore-certificate-errors")
 
 	return rod.New().ControlURL(l.MustLaunch())
 }
