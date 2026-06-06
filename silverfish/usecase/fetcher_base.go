@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -109,9 +110,9 @@ func (f *Fetcher) FetchDocWithEncoding(url *string, charset string) (*goquery.Do
 
 // GenerateRodBrowser export
 func (f *Fetcher) GenerateRodBrowser() *rod.Browser {
-	launcher := launcher.
+	l := launcher.
 		New().
-		Bin("/usr/bin/chromium").
+		Bin(chromiumBin()).
 		Headless(true).
 		Set("disable-gpu").
 		Set("disable-dev-shm-usage").
@@ -122,7 +123,22 @@ func (f *Fetcher) GenerateRodBrowser() *rod.Browser {
 		Set("disable-extensions").
 		Set("disable-sync")
 
-	return rod.New().ControlURL(launcher.MustLaunch())
+	return rod.New().ControlURL(l.MustLaunch())
+}
+
+// chromiumBin picks the browser binary path for Rod. ROD_BIN env var wins so
+// CI / one-off runs can pin a specific binary. Otherwise prefer rod's
+// per-OS LookPath (finds Google Chrome on macOS, chromium-browser on apt
+// distros, etc.). Falls back to the Alpine path the production Dockerfile
+// installs, so prod behavior is unchanged.
+func chromiumBin() string {
+	if bin := os.Getenv("ROD_BIN"); bin != "" {
+		return bin
+	}
+	if bin, found := launcher.NewBrowser().LookPath(); found {
+		return bin
+	}
+	return "/usr/bin/chromium"
 }
 
 // GenerateID export
