@@ -75,7 +75,11 @@ func (fb *FetcherBiquge) CrawlNovel(url *string) (*entity.Novel, error) {
 func (fb *FetcherBiquge) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
 	title := doc.Find("div[id='info'] > h1").Text()
 	author := doc.Find("div[id='info'] > p:nth-of-type(1)").Text()
-	author = strings.Split(author, "：")[1]
+	if parts := strings.SplitN(author, "：", 2); len(parts) == 2 {
+		author = parts[1]
+	} else {
+		author = ""
+	}
 	description := doc.Find("div[id='intro']").Text()
 	coverURL, ok := doc.Find("div[id='fmimg'] > img").Attr("src")
 	if title == "" || author == "" || description == "" || !ok {
