@@ -6,8 +6,12 @@ for `IComicFetcher` and the corresponding entity types. The fetcher
 contracts live in `silverfish/interface/fetcher.go`.
 
 The example URL used throughout is `https://uukanshu.cc/book/25264/`,
-which became `silverfish/usecase/fetcher_uukanshu.go`. Compare against
-that file when in doubt.
+which became `silverfish/usecase/fetcher_uukanshu.go`. That fetcher was
+subsequently dropped (the Alpine `chromium` shipped in the prod image
+fails Cloudflare's JS challenge, even though full Google Chrome locally
+passes it — see `project-dead-fetchers` memory) so the file is no longer
+in the tree; consult git history for the original. The process below
+still applies unchanged.
 
 ## 1. Probe the target
 
@@ -116,7 +120,6 @@ Three reference fetchers cover most cases:
 | ------------------------ | ------------------------------------------------------------------------- |
 | `fetcher_hjwzw.go`       | Plain HTTP works, `og:novel:*` meta tags present, explicit chapter table. |
 | `fetcher_aixdzs.go`      | Rod required (JS-rendered or anti-bot), chapter list inferred from page.  |
-| `fetcher_uukanshu.go`    | Rod required for Cloudflare, but DOM is otherwise clean + has og: meta.   |
 
 For a non-UTF-8 upstream (GBK / GB18030 / Big5), use
 `Fetcher.FetchDocWithEncoding(url, "gbk")` from `fetcher_base.go` instead

@@ -47,9 +47,9 @@ var novelCases = []novelCase{
 	{"aixdzs", "SILVERFISH_TEST_URL_AIXDZS",
 		usecase.NewFetcherAixdzs("tw.aixdzs.com"),
 		"https://tw.aixdzs.com/d/8/8282/"},
-	{"uukanshu", "SILVERFISH_TEST_URL_UUKANSHU",
-		usecase.NewFetcherUukanshu("uukanshu.cc"),
-		"https://uukanshu.cc/book/25264/"},
+	{"ttkan", "SILVERFISH_TEST_URL_TTKAN",
+		usecase.NewFetcherTtkan("www.ttkan.co"),
+		"https://www.ttkan.co/novel/chapters/quanzhifashi-luan"},
 }
 
 var comicCases = []comicCase{

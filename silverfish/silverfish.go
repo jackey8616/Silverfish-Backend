@@ -25,7 +25,7 @@ func New(
 	novelFetchers := map[string]interf.INovelFetcher{
 		"tw.hjwzw.com":  usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"tw.aixdzs.com": usecase.NewFetcherAixdzs("tw.aixdzs.com"),
-		"uukanshu.cc":   usecase.NewFetcherUukanshu("uukanshu.cc"),
+		"www.ttkan.co":  usecase.NewFetcherTtkan("www.ttkan.co"),
 	}
 	comicFetchers := map[string]interf.IComicFetcher{
 		"www.mangabz.com": usecase.NewFetcherMangabz("www.mangabz.com"),

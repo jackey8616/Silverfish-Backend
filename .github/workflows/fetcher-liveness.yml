@@ -21,8 +21,8 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # Rod-based fetchers (aixdzs, uukanshu, jmd8) need a browser binary on
-      # PATH. fetcher_base.chromiumBin uses rod's LookPath, which finds
+      # Rod-based fetchers (aixdzs, jmd8) need a browser binary on PATH.
+      # fetcher_base.chromiumBin uses rod's LookPath, which finds
       # `chromium` / `chromium-browser` automatically.
       - name: Install Chromium for go-rod
         run: |
@@ -34,12 +34,12 @@ jobs:
         env:
           # Override per-fetcher sample URLs via repository variables. Leave
           # unset to use the in-repo defaults; set to "SKIP" to bypass.
-          SILVERFISH_TEST_URL_HJWZW:     ${{ vars.SILVERFISH_TEST_URL_HJWZW }}
-          SILVERFISH_TEST_URL_AIXDZS:    ${{ vars.SILVERFISH_TEST_URL_AIXDZS }}
-          SILVERFISH_TEST_URL_UUKANSHU:  ${{ vars.SILVERFISH_TEST_URL_UUKANSHU }}
-          SILVERFISH_TEST_URL_MANGABZ:   ${{ vars.SILVERFISH_TEST_URL_MANGABZ }}
-          SILVERFISH_TEST_URL_BAOZIMH:   ${{ vars.SILVERFISH_TEST_URL_BAOZIMH }}
-          SILVERFISH_TEST_URL_JMD8:      ${{ vars.SILVERFISH_TEST_URL_JMD8 }}
+          SILVERFISH_TEST_URL_HJWZW:    ${{ vars.SILVERFISH_TEST_URL_HJWZW }}
+          SILVERFISH_TEST_URL_AIXDZS:   ${{ vars.SILVERFISH_TEST_URL_AIXDZS }}
+          SILVERFISH_TEST_URL_TTKAN:    ${{ vars.SILVERFISH_TEST_URL_TTKAN }}
+          SILVERFISH_TEST_URL_MANGABZ:  ${{ vars.SILVERFISH_TEST_URL_MANGABZ }}
+          SILVERFISH_TEST_URL_BAOZIMH:  ${{ vars.SILVERFISH_TEST_URL_BAOZIMH }}
+          SILVERFISH_TEST_URL_JMD8:     ${{ vars.SILVERFISH_TEST_URL_JMD8 }}
         run: |
           go test -tags=live -v -timeout=10m \
             -run 'TestNovelFetchersLive|TestComicFetchersLive' \
