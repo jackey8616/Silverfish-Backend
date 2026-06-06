@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,10 +31,14 @@ func NewFetcherAixdzs(dns string) *FetcherAixdzs {
 	return fa
 }
 
+// aixdzsChapterRe matches /read/<id>/p<n>.html. Used to discover the chapter
+// page range from whatever read-links happen to be on the info page (e.g.
+// "立即閱讀" → p2, "最新:" → p43); we then enumerate p1..pMax for the catalog.
+var aixdzsChapterRe = regexp.MustCompile(`(/read/\d+/)p(\d+)\.html`)
+
 // GetChapterURL export
 func (fa *FetcherAixdzs) GetChapterURL(novel *entity.Novel, index int) *string {
-	url := novel.URL + novel.Chapters[index].URL
-	url = strings.Replace(url, "/d/", "/read/", 1)
+	url := "https://" + novel.DNS + novel.Chapters[index].URL
 	return &url
 }
 
@@ -48,7 +54,9 @@ func (fa *FetcherAixdzs) Filter(raw *string) *string {
 
 // CrawlNovel export
 func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
-	doc, docErr := fa.FetchDoc(url)
+	// aixdzs renders title/author/cover via JS into div.n-text, so plain
+	// FetchDoc gives us an empty shell. Use Rod to get the post-render DOM.
+	doc, docErr := fa.FetchDocViaRod(url)
 	if docErr != nil {
 		return nil, docErr
 	}
@@ -57,11 +65,6 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 	info, infoErr := fa.FetchNovelInfo(id, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
-	}
-	chaptersURL := strings.Replace(*url, "/d/", "/read/", 1)
-	doc, docErr = fa.FetchDoc(&chaptersURL)
-	if docErr != nil {
-		return nil, docErr
 	}
 	chapters := fa.FetchChapterInfo(doc, info.Title, *url)
 	if len(chapters) == 0 {
@@ -79,12 +82,14 @@ func (fa *FetcherAixdzs) CrawlNovel(url *string) (*entity.Novel, error) {
 
 // FetchNovelInfo export
 func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) (*entity.NovelInfo, error) {
-	title := strings.Replace(doc.Find("div.d_info > h1").Text(), "下載", "", 1)
-	author := doc.Find("div.d_ac.fdl > ul > li:nth-of-type(1) > a").Text()
-	description := doc.Find("div.d_co").Text()
-	coverURL, ok := doc.Find("div.d_af.fdl > img").Attr("src")
-	if title == "" || author == "" || description == "" || !ok {
-		return nil, fmt.Errorf("Something missing, title: %s, author: %s, description: %s, coverURL: %s", title, author, description, coverURL)
+	title := strings.TrimSpace(doc.Find("div.n-text > h1").Text())
+	author := strings.TrimSpace(doc.Find("a.bauthor").First().Text())
+	coverURL, _ := doc.Find("div.n-img > img").Attr("src")
+	// New layout no longer carries an inline synopsis; fall back to title so
+	// the field is non-empty without inventing content.
+	description := title
+	if title == "" || author == "" || coverURL == "" {
+		return nil, fmt.Errorf("Something missing, title: %s, author: %s, coverURL: %s", title, author, coverURL)
 	}
 
 	return &entity.NovelInfo{
@@ -101,25 +106,44 @@ func (fa *FetcherAixdzs) FetchNovelInfo(novelID *string, doc *goquery.Document) 
 // FetchChapterInfo export
 func (fa *FetcherAixdzs) FetchChapterInfo(doc *goquery.Document, title, url string) []entity.NovelChapter {
 	chapters := []entity.NovelChapter{}
-	doc.Find("div.catalog > ul > li.chapter > a").Each(func(i int, s *goquery.Selection) {
-		chapterTitle := s.Text()
-		chapterURL, ok := s.Attr("href")
-		if ok {
-			chapters = append(chapters, entity.NovelChapter{
-				Title: fa.decoder.ConvertString(chapterTitle),
-				URL:   chapterURL,
-			})
-		} else {
-			logrus.Printf("Chapter missing something, title: %s, url: %s", title, url)
+	chapterPath := ""
+	maxPage := 0
+	doc.Find("a[href*='/read/']").Each(func(i int, s *goquery.Selection) {
+		href, ok := s.Attr("href")
+		if !ok {
+			return
+		}
+		m := aixdzsChapterRe.FindStringSubmatch(href)
+		if len(m) != 3 {
+			return
+		}
+		n, err := strconv.Atoi(m[2])
+		if err != nil {
+			return
+		}
+		if chapterPath == "" {
+			chapterPath = m[1]
+		}
+		if n > maxPage {
+			maxPage = n
 		}
 	})
-
+	if chapterPath == "" || maxPage == 0 {
+		logrus.Printf("Chapter list empty, title: %s, url: %s", title, url)
+		return chapters
+	}
+	for i := 1; i <= maxPage; i++ {
+		chapters = append(chapters, entity.NovelChapter{
+			Title: fmt.Sprintf("第%d章", i),
+			URL:   fmt.Sprintf("%sp%d.html", chapterPath, i),
+		})
+	}
 	return chapters
 }
 
 // UpdateNovelInfo export
 func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, error) {
-	doc, docErr := fa.FetchDoc(&novel.URL)
+	doc, docErr := fa.FetchDocViaRod(&novel.URL)
 	if docErr != nil {
 		return nil, docErr
 	}
@@ -127,11 +151,6 @@ func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, er
 	info, infoErr := fa.FetchNovelInfo(&novel.NovelID, doc)
 	if infoErr != nil {
 		return nil, fmt.Errorf("Something wrong while fetching info: %s", infoErr.Error())
-	}
-	chaptersURL := strings.Replace(novel.URL, "/d/", "/read/", 1)
-	doc, docErr = fa.FetchDoc(&chaptersURL)
-	if docErr != nil {
-		return nil, docErr
 	}
 	chapters := fa.FetchChapterInfo(doc, info.Title, novel.URL)
 	if len(chapters) == 0 {
@@ -148,7 +167,7 @@ func (fa *FetcherAixdzs) UpdateNovelInfo(novel *entity.Novel) (*entity.Novel, er
 func (fa *FetcherAixdzs) FetchNovelChapter(novel *entity.Novel, index int) (*string, error) {
 	url := fa.GetChapterURL(novel, index)
 	output := ""
-	doc, docErr := fa.FetchDoc(url)
+	doc, docErr := fa.FetchDocViaRod(url)
 	if docErr != nil {
 		return nil, docErr
 	}
