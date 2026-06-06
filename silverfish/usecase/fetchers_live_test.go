@@ -36,55 +36,59 @@ type comicCase struct {
 	defURL  string
 }
 
+// Default sample URLs were taken from the production MongoDB
+// (silverfish.novel/silverfish.comic) — one historically-valid URL per
+// fetcher — so they reflect the real path shape the fetcher was designed
+// for, not a guessed `/<id>/` template.
 var novelCases = []novelCase{
 	{"77xsw", "SILVERFISH_TEST_URL_77XSW",
 		usecase.NewFetcher77xsw("www.77xsw.la"),
-		"https://www.77xsw.la/book/8402/"},
+		"http://www.77xsw.la/book/11072/"},
 	{"hjwzw", "SILVERFISH_TEST_URL_HJWZW",
 		usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"https://tw.hjwzw.com/Book/1644/"},
 	{"biquge", "SILVERFISH_TEST_URL_BIQUGE",
 		usecase.NewFetcherBiquge("www.biquge.com.cn"),
-		"https://www.biquge.com.cn/book/14422/"},
+		"https://www.biquge.com.cn/book/9165/"},
 	{"aixdzs", "SILVERFISH_TEST_URL_AIXDZS",
 		usecase.NewFetcherAixdzs("tw.aixdzs.com"),
-		"https://tw.aixdzs.com/d/91/91851/"},
+		"https://tw.aixdzs.com/d/8/8282/"},
 	{"bookbl", "SILVERFISH_TEST_URL_BOOKBL",
 		usecase.NewFetcherBookbl("www.bookbl.com"),
-		"https://www.bookbl.com/novel/VlJeXgIE.html"},
+		"https://www.bookbl.com/novel/WlRTXgI.html"},
 }
 
 var comicCases = []comicCase{
 	{"nokiacn", "SILVERFISH_TEST_URL_NOKIACN",
 		usecase.NewFetcherNokiacn("www.nokiacn.net"),
-		"http://www.nokiacn.net/comiclist/1.html"},
+		"http://www.nokiacn.net/mohuan/canglongjinshi/"},
 	{"cartoonmad", "SILVERFISH_TEST_URL_CARTOONMAD",
 		usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
-		"https://www.cartoonmad.com/comic/1.html"},
+		"https://www.cartoonmad.com/m/comic/5446.html"},
 	{"comicbus", "SILVERFISH_TEST_URL_COMICBUS",
 		usecase.NewFetcherComicbus("comicbus.com"),
-		"https://comicbus.com/comic/1/"},
+		"https://comicbus.com/html/14898.html"},
 	{"manhuaniu", "SILVERFISH_TEST_URL_MANHUANIU",
 		usecase.NewFetcherManhuaniu("www.manhuaniu.com"),
-		"https://www.manhuaniu.com/comic/1/"},
+		"https://www.manhuaniu.com/manhua/12032/"},
 	{"mangabz", "SILVERFISH_TEST_URL_MANGABZ",
 		usecase.NewFetcherMangabz("www.mangabz.com"),
-		"http://www.mangabz.com/manhua/1/"},
+		"http://www.mangabz.com/15261bz/"},
 	{"happymh", "SILVERFISH_TEST_URL_HAPPYMH",
 		usecase.NewFetcherHappymh("m.happymh.com"),
-		"https://m.happymh.com/comic/1/"},
+		"https://m.happymh.com/manga/wanggoujinengkaiqiyishijiemeishizhilv/"},
 	{"baozimh", "SILVERFISH_TEST_URL_BAOZIMH",
 		usecase.NewFetcherBaozimh("www.baozimh.com"),
-		"http://www.baozimh.com/comic/1/"},
+		"https://www.baozimh.com/comic/woduzishengji-duburedicestudio_gi486f"},
 	{"mfhmh", "SILVERFISH_TEST_URL_MFHMH",
 		usecase.NewFetcherMfhmh("www.mfhmh.com"),
-		"https://www.mfhmh.com/comic/1/"},
+		"https://www.mfhmh.com/book/Da8lap.html"},
 	{"ikanwzd", "SILVERFISH_TEST_URL_IKANWZD",
 		usecase.NewFetcherIkanwzd("www.ikanwzd.top"),
-		"https://www.ikanwzd.top/comics/1/"},
+		"https://www.ikanwzd.top/book/5"},
 	{"jmd8", "SILVERFISH_TEST_URL_JMD8",
 		usecase.NewFetcherJmd8("jmd8.com"),
-		"https://jmd8.com/1/"},
+		"https://jmd8.com/manga/52366"},
 }
 
 func resolveURL(envKey, def string) string {
