@@ -1,0 +1,43 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  IMAGE: ${{ vars.TF_GCP_REGION }}-docker.pkg.dev/${{ vars.TF_GCP_PROJECT_ID }}/${{ vars.TF_GCP_AR_REPOSITORY }}/${{ vars.TF_GCP_CLOUD_RUN_SERVICE }}:${{ github.ref_name }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.TF_GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.TF_GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.TF_GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build image
+        run: docker build -t "$IMAGE" .
+
+      - name: Push image
+        run: docker push "$IMAGE"
+
+      - name: Roll image into Cloud Run service
+        run: |
+          gcloud run services update ${{ vars.TF_GCP_CLOUD_RUN_SERVICE }} \
+            --image="$IMAGE" \
+            --region=${{ vars.TF_GCP_REGION }} \
+            --project=${{ vars.TF_GCP_PROJECT_ID }}
