@@ -23,17 +23,14 @@ func New(
 ) *Silverfish {
 	sf := new(Silverfish)
 	novelFetchers := map[string]interf.INovelFetcher{
-		"www.77xsw.la":  usecase.NewFetcher77xsw("www.77xsw.la"),
 		"tw.hjwzw.com":  usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"tw.aixdzs.com": usecase.NewFetcherAixdzs("tw.aixdzs.com"),
 		"uukanshu.cc":   usecase.NewFetcherUukanshu("uukanshu.cc"),
 	}
 	comicFetchers := map[string]interf.IComicFetcher{
-		"www.nokiacn.net":    usecase.NewFetcherNokiacn("www.nokiacn.net"),
-		"www.cartoonmad.com": usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
-		"www.mangabz.com":    usecase.NewFetcherMangabz("www.mangabz.com"),
-		"www.baozimh.com":    usecase.NewFetcherBaozimh("www.baozimh.com"),
-		"jmd8.com":           usecase.NewFetcherJmd8("jmd8.com"), // Oops...
+		"www.mangabz.com": usecase.NewFetcherMangabz("www.mangabz.com"),
+		"www.baozimh.com": usecase.NewFetcherBaozimh("www.baozimh.com"),
+		"jmd8.com":        usecase.NewFetcherJmd8("jmd8.com"),
 	}
 
 	sf.Auth = NewAuth(hashSalt, userInf, sessionInf)

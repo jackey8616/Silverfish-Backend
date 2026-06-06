@@ -116,8 +116,12 @@ Three reference fetchers cover most cases:
 | ------------------------ | ------------------------------------------------------------------------- |
 | `fetcher_hjwzw.go`       | Plain HTTP works, `og:novel:*` meta tags present, explicit chapter table. |
 | `fetcher_aixdzs.go`      | Rod required (JS-rendered or anti-bot), chapter list inferred from page.  |
-| `fetcher_77xsw.go`       | Plain HTTP, non-UTF-8 charset (uses `FetchDocWithEncoding` + mahonia).    |
 | `fetcher_uukanshu.go`    | Rod required for Cloudflare, but DOM is otherwise clean + has og: meta.   |
+
+For a non-UTF-8 upstream (GBK / GB18030 / Big5), use
+`Fetcher.FetchDocWithEncoding(url, "gbk")` from `fetcher_base.go` instead
+of plain `FetchDoc`. No remaining fetcher currently exercises that path
+— grep the git history for a deleted example if needed.
 
 Copy the closest match into a new `fetcher_<site>.go`. The fetcher
 package is `silverfish/usecase`. Embed `Fetcher` from `fetcher_base.go`

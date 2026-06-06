@@ -21,9 +21,9 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # Rod-based fetchers (happymh, mfhmh, ikanwzd, jmd8) need a browser
-      # binary on PATH. fetcher_base.chromiumBin uses rod's LookPath, which
-      # finds `chromium` / `chromium-browser` automatically.
+      # Rod-based fetchers (aixdzs, uukanshu, jmd8) need a browser binary on
+      # PATH. fetcher_base.chromiumBin uses rod's LookPath, which finds
+      # `chromium` / `chromium-browser` automatically.
       - name: Install Chromium for go-rod
         run: |
           sudo apt-get update
@@ -34,14 +34,12 @@ jobs:
         env:
           # Override per-fetcher sample URLs via repository variables. Leave
           # unset to use the in-repo defaults; set to "SKIP" to bypass.
-          SILVERFISH_TEST_URL_77XSW:      ${{ vars.SILVERFISH_TEST_URL_77XSW }}
-          SILVERFISH_TEST_URL_HJWZW:      ${{ vars.SILVERFISH_TEST_URL_HJWZW }}
-          SILVERFISH_TEST_URL_AIXDZS:     ${{ vars.SILVERFISH_TEST_URL_AIXDZS }}
-          SILVERFISH_TEST_URL_NOKIACN:    ${{ vars.SILVERFISH_TEST_URL_NOKIACN }}
-          SILVERFISH_TEST_URL_CARTOONMAD: ${{ vars.SILVERFISH_TEST_URL_CARTOONMAD }}
-          SILVERFISH_TEST_URL_MANGABZ:    ${{ vars.SILVERFISH_TEST_URL_MANGABZ }}
-          SILVERFISH_TEST_URL_BAOZIMH:    ${{ vars.SILVERFISH_TEST_URL_BAOZIMH }}
-          SILVERFISH_TEST_URL_JMD8:       ${{ vars.SILVERFISH_TEST_URL_JMD8 }}
+          SILVERFISH_TEST_URL_HJWZW:     ${{ vars.SILVERFISH_TEST_URL_HJWZW }}
+          SILVERFISH_TEST_URL_AIXDZS:    ${{ vars.SILVERFISH_TEST_URL_AIXDZS }}
+          SILVERFISH_TEST_URL_UUKANSHU:  ${{ vars.SILVERFISH_TEST_URL_UUKANSHU }}
+          SILVERFISH_TEST_URL_MANGABZ:   ${{ vars.SILVERFISH_TEST_URL_MANGABZ }}
+          SILVERFISH_TEST_URL_BAOZIMH:   ${{ vars.SILVERFISH_TEST_URL_BAOZIMH }}
+          SILVERFISH_TEST_URL_JMD8:      ${{ vars.SILVERFISH_TEST_URL_JMD8 }}
         run: |
           go test -tags=live -v -timeout=10m \
             -run 'TestNovelFetchersLive|TestComicFetchersLive' \

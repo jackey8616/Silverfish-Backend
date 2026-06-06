@@ -41,9 +41,6 @@ type comicCase struct {
 // fetcher — so they reflect the real path shape the fetcher was designed
 // for, not a guessed `/<id>/` template.
 var novelCases = []novelCase{
-	{"77xsw", "SILVERFISH_TEST_URL_77XSW",
-		usecase.NewFetcher77xsw("www.77xsw.la"),
-		"http://www.77xsw.la/book/11072/"},
 	{"hjwzw", "SILVERFISH_TEST_URL_HJWZW",
 		usecase.NewFetcherHjwzw("tw.hjwzw.com"),
 		"https://tw.hjwzw.com/Book/1644/"},
@@ -56,12 +53,6 @@ var novelCases = []novelCase{
 }
 
 var comicCases = []comicCase{
-	{"nokiacn", "SILVERFISH_TEST_URL_NOKIACN",
-		usecase.NewFetcherNokiacn("www.nokiacn.net"),
-		"http://www.nokiacn.net/mohuan/canglongjinshi/"},
-	{"cartoonmad", "SILVERFISH_TEST_URL_CARTOONMAD",
-		usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
-		"https://www.cartoonmad.com/m/comic/5446.html"},
 	{"mangabz", "SILVERFISH_TEST_URL_MANGABZ",
 		usecase.NewFetcherMangabz("www.mangabz.com"),
 		"http://www.mangabz.com/15261bz/"},
