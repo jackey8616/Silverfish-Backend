@@ -12,16 +12,15 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/rs/cors v1.6.0
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.8.3
 	go.mongodb.org/mongo-driver v1.17.9
-	golang.org/x/text v0.28.0
+	golang.org/x/text v0.31.0
 )
 
 require (
 	github.com/andybalholm/cascadia v1.1.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.1 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -30,9 +29,9 @@ require (
 	github.com/ysmood/goob v0.3.0 // indirect
 	github.com/ysmood/gson v0.6.3 // indirect
 	github.com/ysmood/leakless v0.6.11 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.23.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
