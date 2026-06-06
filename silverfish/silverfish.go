@@ -23,24 +23,16 @@ func New(
 ) *Silverfish {
 	sf := new(Silverfish)
 	novelFetchers := map[string]interf.INovelFetcher{
-		"www.77xsw.la":      usecase.NewFetcher77xsw("www.77xsw.la"),
-		"tw.hjwzw.com":      usecase.NewFetcherHjwzw("tw.hjwzw.com"),
-		"www.biquge.com.cn": usecase.NewFetcherBiquge("www.biquge.com.cn"),
-		"tw.aixdzs.com":     usecase.NewFetcherAixdzs("tw.aixdzs.com"),
-		"www.bookbl.com":    usecase.NewFetcherBookbl("www.bookbl.com"),
+		"www.77xsw.la":  usecase.NewFetcher77xsw("www.77xsw.la"),
+		"tw.hjwzw.com":  usecase.NewFetcherHjwzw("tw.hjwzw.com"),
+		"tw.aixdzs.com": usecase.NewFetcherAixdzs("tw.aixdzs.com"),
 	}
 	comicFetchers := map[string]interf.IComicFetcher{
-		//"www.99comic.co":     usecase.NewFetcher99Comic("www.99comic.co"),
 		"www.nokiacn.net":    usecase.NewFetcherNokiacn("www.nokiacn.net"),
 		"www.cartoonmad.com": usecase.NewFetcherCartoonmad("www.cartoonmad.com"),
-		"comicbus.com":       usecase.NewFetcherComicbus("comicbus.com"),
-		"www.manhuaniu.com":  usecase.NewFetcherManhuaniu("www.manhuaniu.com"),
 		"www.mangabz.com":    usecase.NewFetcherMangabz("www.mangabz.com"),
-		"m.happymh.com":      usecase.NewFetcherHappymh("m.happymh.com"),
 		"www.baozimh.com":    usecase.NewFetcherBaozimh("www.baozimh.com"),
-		"www.mfhmh.com":      usecase.NewFetcherMfhmh("www.mfhmh.com"),     // Oops...
-		"www.ikanwzd.top":    usecase.NewFetcherIkanwzd("www.ikanwzd.top"), // Oops...
-		"jmd8.com":           usecase.NewFetcherJmd8("jmd8.com"),           // Oops...
+		"jmd8.com":           usecase.NewFetcherJmd8("jmd8.com"), // Oops...
 	}
 
 	sf.Auth = NewAuth(hashSalt, userInf, sessionInf)
