@@ -30,7 +30,12 @@ func New(
 	comicFetchers := map[string]interf.IComicFetcher{
 		"www.mangabz.com": usecase.NewFetcherMangabz("www.mangabz.com"),
 		"www.baozimh.com": usecase.NewFetcherBaozimh("www.baozimh.com"),
-		"jmd8.com":        usecase.NewFetcherJmd8("jmd8.com"),
+		// jmd8.com 301-redirects to 91jmd.com (the new canonical host).
+		// Keep the old entry so existing comic records (DNS=jmd8.com)
+		// still resolve their fetcher; they pay one redirect per chapter
+		// request until re-crawled. New URLs should use 91jmd.com directly.
+		"jmd8.com":  usecase.NewFetcherJmd8("jmd8.com"),
+		"91jmd.com": usecase.NewFetcherJmd8("91jmd.com"),
 	}
 
 	sf.Auth = NewAuth(hashSalt, userInf, sessionInf)

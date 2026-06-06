@@ -60,8 +60,8 @@ var comicCases = []comicCase{
 		usecase.NewFetcherBaozimh("www.baozimh.com"),
 		"https://www.baozimh.com/comic/woduzishengji-duburedicestudio_gi486f"},
 	{"jmd8", "SILVERFISH_TEST_URL_JMD8",
-		usecase.NewFetcherJmd8("jmd8.com"),
-		"https://jmd8.com/manga/52366"},
+		usecase.NewFetcherJmd8("91jmd.com"),
+		"https://91jmd.com/manga/52366"},
 }
 
 func resolveURL(envKey, def string) string {
