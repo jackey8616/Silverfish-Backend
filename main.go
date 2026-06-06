@@ -15,9 +15,28 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func ensureSessionIndexes(col *mongo.Collection) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.D{{Key: "token", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+		{
+			Keys:    bson.D{{Key: "expireTS", Value: 1}},
+			Options: options.Index().SetExpireAfterSeconds(0),
+		},
+	})
+	if err != nil {
+		logrus.Fatal(errors.Wrap(err, "...while creating session indexes: "))
+	}
+}
 
 func dbInit(mongoHost *string) *mongo.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -54,9 +73,12 @@ func main() {
 	logrus.Print("<- MongoDB inited!")
 	logrus.Print("-> Initing Silverfish ...")
 	db := client.Database("silverfish")
+	sessionCol := db.Collection("session")
+	ensureSessionIndexes(sessionCol)
 	userInf := entity.NewMongoInf(db.Collection("user"))
 	novelInf := entity.NewMongoInf(db.Collection("novel"))
 	comicInf := entity.NewMongoInf(db.Collection("comic"))
+	sessionInf := entity.NewMongoInf(sessionCol)
 	userColCount, _ := userInf.CountDocuments()
 	logrus.Printf("..... User Collection documents count: %d", userColCount)
 	novelColCount, _ := novelInf.CountDocuments()
@@ -65,7 +87,7 @@ func main() {
 	logrus.Printf("..... Comic Collection documents count: %d", comicColCount)
 	logrus.Print("... Collection Infrastructure inited.")
 
-	silverfishInstance := silverfish.New(&config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf)
+	silverfishInstance := silverfish.New(&config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf, sessionInf)
 	muxRouter := mux.NewRouter()
 	router := router.NewRouter(
 		&config.RecaptchaKey,

@@ -14,75 +14,67 @@ type Auth struct {
 	hashSalt    *string
 	sessionSalt *string
 	userInf     *entity.MongoInf
-	sessions    map[string]*entity.Session
+	sessionInf  *entity.MongoInf
 }
 
 // NewAuth export
-func NewAuth(hashSalt *string, userInf *entity.MongoInf) *Auth {
+func NewAuth(hashSalt *string, userInf, sessionInf *entity.MongoInf) *Auth {
 	saltTmp := "SILVERFISH"
 	a := new(Auth)
 	a.hashSalt = hashSalt
 	a.userInf = userInf
+	a.sessionInf = sessionInf
 	a.sessionSalt = &saltTmp
-	a.sessions = map[string]*entity.Session{}
 	return a
 }
 
-// ExpireLoop export
-func (a *Auth) ExpireLoop() {
-	newSessions := map[string]*entity.Session{}
-	for k, v := range a.sessions {
-		if v.IsExpired() == false {
-			newSessions[k] = v
-		}
+func (a *Auth) findSession(token *string) (*entity.Session, error) {
+	result, err := a.sessionInf.FindOne(bson.M{"token": *token}, &entity.Session{})
+	if err != nil {
+		return nil, err
 	}
-	a.sessions = newSessions
+	return result.(*entity.Session), nil
 }
 
 // GetSession export
 func (a *Auth) GetSession(sessionToken *string) (*entity.Session, error) {
-	if _, ok := a.sessions[*sessionToken]; ok {
-		session := a.sessions[*sessionToken]
-		session.KeepAlive()
-		return session, nil
+	session, err := a.findSession(sessionToken)
+	if err != nil {
+		return nil, errors.New("SessionToken not exists")
 	}
-	return nil, errors.New("SessionToken not exists")
+	session.KeepAlive()
+	a.sessionInf.Update(bson.M{"token": *sessionToken}, session)
+	return session, nil
 }
 
 // InsertSession export
 func (a *Auth) InsertSession(user *entity.User, keepLogin bool) *entity.Session {
-	a.ExpireLoop()
-	payload := (*user).Account + time.Now().String()
+	payload := user.Account + time.Now().String()
 	sessionToken := SHA512Str(&payload, a.sessionSalt)
-	if _, ok := a.sessions[*sessionToken]; ok {
-		return a.InsertSession(user, keepLogin)
-	}
 	session := entity.NewSession(keepLogin, sessionToken, user)
-	a.sessions[*sessionToken] = session
+	a.sessionInf.Insert(session)
 	return session
 }
 
 // IsTokenValid export
 func (a *Auth) IsTokenValid(sessionToken *string) bool {
-	if val, ok := a.sessions[*sessionToken]; ok {
-		result := val.IsExpired()
-		if result == true {
-			delete(a.sessions, *sessionToken)
-			return false
-		}
-		a.sessions[*sessionToken].KeepAlive()
-		return true
+	session, err := a.findSession(sessionToken)
+	if err != nil {
+		return false
 	}
-	return false
+	if session.IsExpired() {
+		a.sessionInf.Remove(bson.M{"token": *sessionToken})
+		return false
+	}
+	session.KeepAlive()
+	a.sessionInf.Update(bson.M{"token": *sessionToken}, session)
+	return true
 }
 
 // KillSession export
 func (a *Auth) KillSession(sessionToken *string) bool {
-	if _, ok := a.sessions[*sessionToken]; ok {
-		delete(a.sessions, *sessionToken)
-		return true
-	}
-	return false
+	err := a.sessionInf.Remove(bson.M{"token": *sessionToken})
+	return err == nil
 }
 
 // Register export

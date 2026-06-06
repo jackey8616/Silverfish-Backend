@@ -4,53 +4,44 @@ import "time"
 
 // Session export
 type Session struct {
-	keepLogin bool
-	token     *string
-	account   *string
-	loginTS   time.Time
-	expireTS  time.Time
+	KeepLogin bool      `json:"keepLogin" bson:"keepLogin"`
+	Token     string    `json:"token" bson:"token"`
+	Account   string    `json:"account" bson:"account"`
+	LoginTS   time.Time `json:"loginTS" bson:"loginTS"`
+	ExpireTS  time.Time `json:"expireTS" bson:"expireTS"`
 }
 
 // NewSession export
 func NewSession(keepLogin bool, token *string, user *User) *Session {
-	s := new(Session)
-	s.keepLogin = keepLogin
-	s.token = token
-	s.account = &(*user).Account
-	s.loginTS = time.Now()
-	if keepLogin == true {
-		s.expireTS = time.Now().Add(time.Hour * 24 * 7)
-	} else {
-		s.expireTS = time.Now().Add(time.Hour)
+	s := &Session{
+		KeepLogin: keepLogin,
+		Token:     *token,
+		Account:   user.Account,
+		LoginTS:   time.Now(),
 	}
+	s.refreshExpiry()
 	return s
 }
 
-// GetToken export
-func (s *Session) GetToken() *string {
-	return s.token
-}
-
-// GetExpireTS
-func (s *Session) GetExpireTS() time.Time {
-	return s.expireTS
-}
-
-// GetAccount export
-func (s *Session) GetAccount() *string {
-	return s.account
-}
-
-// KeepAlive export
-func (s *Session) KeepAlive() {
-	if s.keepLogin == true {
-		s.expireTS = time.Now().Add(time.Hour * 24 * 7)
+func (s *Session) refreshExpiry() {
+	if s.KeepLogin {
+		s.ExpireTS = time.Now().Add(time.Hour * 24 * 7)
 	} else {
-		s.expireTS = time.Now().Add(time.Hour)
+		s.ExpireTS = time.Now().Add(time.Hour)
 	}
 }
 
+// GetToken export
+func (s *Session) GetToken() *string { return &s.Token }
+
+// GetExpireTS export
+func (s *Session) GetExpireTS() time.Time { return s.ExpireTS }
+
+// GetAccount export
+func (s *Session) GetAccount() *string { return &s.Account }
+
+// KeepAlive export
+func (s *Session) KeepAlive() { s.refreshExpiry() }
+
 // IsExpired export
-func (s *Session) IsExpired() bool {
-	return time.Now().After(s.expireTS)
-}
+func (s *Session) IsExpired() bool { return time.Now().After(s.ExpireTS) }

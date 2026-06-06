@@ -68,10 +68,18 @@ func (bpa *BlueprintAuth) register(w http.ResponseWriter, r *http.Request) {
 		response = entity.NewAPIResponse(nil, errors.New("Recaptcha verify failed"))
 	} else {
 		user, err := bpa.auth.Register(false, &account, &password)
-		response = entity.NewAPIResponse(map[string]interface{}{
-			"session": *bpa.auth.InsertSession(user, false),
-			"user":    user,
-		}, err)
+		if err != nil {
+			response = entity.NewAPIResponse(nil, err)
+		} else {
+			session := bpa.auth.InsertSession(user, false)
+			response = entity.NewAPIResponse(map[string]interface{}{
+				"session": map[string]interface{}{
+					"token":          session.GetToken(),
+					"expireDatetime": session.GetExpireTS(),
+				},
+				"user": user,
+			}, nil)
+		}
 	}
 	js, _ := json.Marshal(response)
 	w.Write(js)

@@ -19,7 +19,7 @@ type Silverfish struct {
 func New(
 	hashSalt *string,
 	crawlDuration int,
-	userInf, novelInf, comicInf *entity.MongoInf,
+	userInf, novelInf, comicInf, sessionInf *entity.MongoInf,
 ) *Silverfish {
 	sf := new(Silverfish)
 	novelFetchers := map[string]interf.INovelFetcher{
@@ -43,7 +43,7 @@ func New(
 		"jmd8.com":           usecase.NewFetcherJmd8("jmd8.com"),           // Oops...
 	}
 
-	sf.Auth = NewAuth(hashSalt, userInf)
+	sf.Auth = NewAuth(hashSalt, userInf, sessionInf)
 	sf.Novel = NewNovel(sf.Auth, novelInf, novelFetchers, crawlDuration)
 	sf.Comic = NewComic(sf.Auth, comicInf, comicFetchers, crawlDuration)
 	sf.Admin = NewAdmin(userInf)
