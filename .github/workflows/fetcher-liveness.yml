@@ -1,0 +1,58 @@
+name: Fetcher liveness
+
+on:
+  schedule:
+    # Daily at 03:00 UTC (~11:00 Taipei). Adjust as desired.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  liveness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Rod-based fetchers (happymh, mfhmh, ikanwzd, jmd8) need Chromium at
+      # the path hardcoded in silverfish/usecase/fetcher_base.go.
+      - name: Install Chromium for go-rod
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          # fetcher_base.GenerateRodBrowser hardcodes /usr/bin/chromium
+          if [ ! -e /usr/bin/chromium ]; then
+            sudo ln -s /usr/bin/chromium-browser /usr/bin/chromium
+          fi
+          /usr/bin/chromium --version
+
+      - name: Run fetcher liveness tests
+        env:
+          # Override per-fetcher sample URLs via repository variables. Leave
+          # unset to use the in-repo defaults; set to "SKIP" to bypass.
+          SILVERFISH_TEST_URL_77XSW:      ${{ vars.SILVERFISH_TEST_URL_77XSW }}
+          SILVERFISH_TEST_URL_HJWZW:      ${{ vars.SILVERFISH_TEST_URL_HJWZW }}
+          SILVERFISH_TEST_URL_BIQUGE:     ${{ vars.SILVERFISH_TEST_URL_BIQUGE }}
+          SILVERFISH_TEST_URL_AIXDZS:     ${{ vars.SILVERFISH_TEST_URL_AIXDZS }}
+          SILVERFISH_TEST_URL_BOOKBL:     ${{ vars.SILVERFISH_TEST_URL_BOOKBL }}
+          SILVERFISH_TEST_URL_NOKIACN:    ${{ vars.SILVERFISH_TEST_URL_NOKIACN }}
+          SILVERFISH_TEST_URL_CARTOONMAD: ${{ vars.SILVERFISH_TEST_URL_CARTOONMAD }}
+          SILVERFISH_TEST_URL_COMICBUS:   ${{ vars.SILVERFISH_TEST_URL_COMICBUS }}
+          SILVERFISH_TEST_URL_MANHUANIU:  ${{ vars.SILVERFISH_TEST_URL_MANHUANIU }}
+          SILVERFISH_TEST_URL_MANGABZ:    ${{ vars.SILVERFISH_TEST_URL_MANGABZ }}
+          SILVERFISH_TEST_URL_HAPPYMH:    ${{ vars.SILVERFISH_TEST_URL_HAPPYMH }}
+          SILVERFISH_TEST_URL_BAOZIMH:    ${{ vars.SILVERFISH_TEST_URL_BAOZIMH }}
+          SILVERFISH_TEST_URL_MFHMH:      ${{ vars.SILVERFISH_TEST_URL_MFHMH }}
+          SILVERFISH_TEST_URL_IKANWZD:    ${{ vars.SILVERFISH_TEST_URL_IKANWZD }}
+          SILVERFISH_TEST_URL_JMD8:       ${{ vars.SILVERFISH_TEST_URL_JMD8 }}
+        run: |
+          go test -tags=live -v -timeout=10m \
+            -run 'TestNovelFetchersLive|TestComicFetchersLive' \
+            ./silverfish/usecase/...
