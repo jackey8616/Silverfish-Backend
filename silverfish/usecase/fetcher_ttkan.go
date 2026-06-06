@@ -24,10 +24,12 @@ func NewFetcherTtkan(dns string) *FetcherTtkan {
 	return ft
 }
 
-// ttkanChapterRe matches /novel/pagea/<slug>_<n>.html links. ttkan's
-// info page also contains an unrendered amp-mustache template anchor
-// (href ends in `{{chapter_id}}`); this regex rejects those.
-var ttkanChapterRe = regexp.MustCompile(`^/novel/pagea/[a-z0-9-]+_\d+\.html$`)
+// ttkanChapterRe matches /novel/pagea/<slug>_<n>.html links. Slug may
+// contain `_` itself (e.g. books with a series prefix like
+// `quanmindahanghai_wokaiju...`); regex is greedy so `_\d+\.html$`
+// anchors to the trailing chapter index. Also rejects the unrendered
+// amp-mustache template anchor (href ends in `{{chapter_id}}`).
+var ttkanChapterRe = regexp.MustCompile(`^/novel/pagea/[a-z0-9_-]+_\d+\.html$`)
 
 // GetChapterURL export
 func (ft *FetcherTtkan) GetChapterURL(novel *entity.Novel, index int) *string {
