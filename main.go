@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"time"
 
 	router "silverfish/router"
 	silverfish "silverfish/silverfish"
@@ -13,19 +15,22 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/mgo.v2"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func dbInit(mongoHost *string) *mgo.Session {
-	session, err := mgo.Dial(*mongoHost)
+func dbInit(mongoHost *string) *mongo.Client {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(*mongoHost))
 	if err != nil {
 		logrus.Fatal(errors.Wrap(err, "...while initing: "))
 	}
-	err = session.Ping()
-	if err != nil {
+	if err = client.Ping(ctx, nil); err != nil {
 		logrus.Fatal(errors.Wrap(err, "... while pinging: "))
 	}
-	return session
+	return client
 }
 
 func main() {
@@ -45,22 +50,19 @@ func main() {
 	logrus.Printf("Debug: %t", config.Debug)
 
 	logrus.Printf("-> Initing MongoDB")
-	session := dbInit(&config.DbHost)
+	client := dbInit(&config.DbHost)
 	logrus.Print("<- MongoDB inited!")
 	logrus.Print("-> Initing Silverfish ...")
-	userCol := session.DB("silverfish").C("user")
-	userColCount, _ := userCol.Count()
+	db := client.Database("silverfish")
+	userInf := entity.NewMongoInf(db.Collection("user"))
+	novelInf := entity.NewMongoInf(db.Collection("novel"))
+	comicInf := entity.NewMongoInf(db.Collection("comic"))
+	userColCount, _ := userInf.CountDocuments()
 	logrus.Printf("..... User Collection documents count: %d", userColCount)
-	novelCol := session.DB("silverfish").C("novel")
-	novelColCount, _ := novelCol.Count()
+	novelColCount, _ := novelInf.CountDocuments()
 	logrus.Printf("..... Novel Collection documents count: %d", novelColCount)
-	comicCol := session.DB("silverfish").C("comic")
-	comicColCount, _ := comicCol.Count()
+	comicColCount, _ := comicInf.CountDocuments()
 	logrus.Printf("..... Comic Collection documents count: %d", comicColCount)
-	logrus.Print("... Collection inited.")
-	userInf := entity.NewMongoInf(session, userCol)
-	novelInf := entity.NewMongoInf(session, novelCol)
-	comicInf := entity.NewMongoInf(session, comicCol)
 	logrus.Print("... Collection Infrastructure inited.")
 
 	silverfishInstance := silverfish.New(&config.HashSalt, config.CrawlDuration, userInf, novelInf, comicInf)

@@ -6,7 +6,7 @@ import (
 
 	entity "silverfish/silverfish/entity"
 
-	"gopkg.in/mgo.v2/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Auth export
